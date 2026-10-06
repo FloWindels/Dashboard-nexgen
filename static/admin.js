@@ -1,23 +1,57 @@
-async function loadAdminStatus() {
-    try {
-        const response = await fetch('/api/status');
-        const data = await response.json();
+/* =========================================================
+   Services
+========================================================= */
 
-        if (!response.ok) {
-            throw new Error(data.detail || 'Erreur de chargement');
+const SERVICES_REFRESH_MS = 15000;
+
+const STATE_BADGES = {
+    ONLINE: "badge ok",
+    OFFLINE: "badge",
+    ERROR: "badge bad",
+};
+
+async function loadServices() {
+    const grid = document.getElementById("servicesGrid");
+    const checked = document.getElementById("servicesChecked");
+
+    try {
+        // Rafraichissement automatique: ne prolonge pas la session.
+        const data = await Hyperflo.apiJson("/api/admin/services", {
+            headers: { "X-Hyperflo-Poll": "1" },
+        });
+
+        grid.replaceChildren();
+        for (const service of data.services) {
+            const tile = Hyperflo.element("div", `service service-${service.state.toLowerCase()}`);
+
+            const header = Hyperflo.element("div", "service-header");
+            header.appendChild(Hyperflo.element("strong", "", service.name));
+            header.appendChild(Hyperflo.element("span", STATE_BADGES[service.state] || "badge", service.state));
+            tile.appendChild(header);
+
+            tile.appendChild(Hyperflo.element("div", "small", service.detail || ""));
+
+            const source = service.kind === "docker" ? `conteneur ${service.unit}` : service.unit;
+            const since = service.since
+                ? ` · depuis ${Hyperflo.formatDuration(data.checked_at - service.since)}`
+                : "";
+            tile.appendChild(Hyperflo.element("div", "small service-unit", source + since));
+
+            grid.appendChild(tile);
         }
 
-        document.getElementById('hostname').textContent = data.hostname || 'Inconnu';
-        document.getElementById('uptime').textContent = Hyperflo.formatDuration(data.uptime || 0);
-        document.getElementById('cpu').textContent = `${(data.cpu?.usage ?? 0).toFixed(1)} %`;
-        document.getElementById('memory').textContent = `${((data.memory?.used ?? 0) / 1024 / 1024 / 1024).toFixed(1)} Go`;
+        checked.textContent = `Vérifié à ${new Date(data.checked_at * 1000).toLocaleTimeString("fr-FR")}`;
     } catch (error) {
-        document.getElementById('adminStatus').textContent = 'Erreur : ' + error.message;
+        checked.textContent = "Erreur : " + error.message;
     }
 }
 
+async function servicesLoop() {
+    await loadServices();
+    setTimeout(servicesLoop, SERVICES_REFRESH_MS);
+}
 
-loadAdminStatus();
+servicesLoop();
 
 
 /* =========================================================

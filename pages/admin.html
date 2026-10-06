@@ -14,38 +14,15 @@
 
     <main class="page">
         <h1>⚙️ Administration</h1>
-        <p>Sessions, sécurité et état du serveur.</p>
+        <p class="small">État des services, sessions et sécurité.</p>
 
-        <div class="grid">
-            <div class="card">
-                <h2>État du système</h2>
-                <div id="adminStatus">Chargement...</div>
+        <section class="card">
+            <div class="card-header">
+                <h2>🧩 Services</h2>
+                <span class="small" id="servicesChecked">Chargement...</span>
             </div>
-
-            <div class="card">
-                <h2>Hôte</h2>
-                <div id="hostname" class="value">--</div>
-                <div class="small">Nom du serveur</div>
-            </div>
-
-            <div class="card">
-                <h2>Uptime</h2>
-                <div id="uptime" class="value">--</div>
-                <div class="small">Temps de fonctionnement</div>
-            </div>
-
-            <div class="card">
-                <h2>CPU</h2>
-                <div id="cpu" class="value">--</div>
-                <div class="small">Utilisation actuelle</div>
-            </div>
-
-            <div class="card">
-                <h2>Mémoire</h2>
-                <div id="memory" class="value">--</div>
-                <div class="small">Mémoire utilisée</div>
-            </div>
-        </div>
+            <div id="servicesGrid" class="services-grid"></div>
+        </section>
 
         <section class="card wide">
             <div class="card-header">

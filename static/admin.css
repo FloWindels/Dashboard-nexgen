@@ -2,23 +2,10 @@
     padding: 24px;
 }
 
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-    margin-top: 20px;
-}
-
 h2 {
     margin-top: 0;
     margin-bottom: 12px;
     font-size: 1.1rem;
-}
-
-.value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 8px;
 }
 
 .wide {
@@ -58,4 +45,47 @@ td {
 
 table {
     font-size: 0.9rem;
+}
+
+.page > .card:first-of-type {
+    margin-top: 20px;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
+}
+
+.service {
+    background: var(--sidebar-secondary);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border-light);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.service-online {
+    border-left-color: var(--green);
+}
+
+.service-error {
+    border-left-color: var(--red);
+}
+
+.service-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.service .small + .small {
+    margin-top: 4px;
+}
+
+.service-unit {
+    font-family: monospace;
+    font-size: 12px;
 }

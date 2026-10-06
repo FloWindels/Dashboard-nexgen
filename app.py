@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from admin_api import router as admin_router
 from auth import router as auth_router
 from auth import setup_auth
 from config import BASE_DIR, validate_auth_config
@@ -34,3 +35,4 @@ app.include_router(pages_router)
 app.include_router(system_router)
 app.include_router(docker_router)
 app.include_router(ollama_router)
+app.include_router(admin_router)
