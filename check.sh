@@ -19,7 +19,7 @@ step() {
 }
 
 step "1/6 Syntaxe Python"
-"$PY" -I - *.py tests/*.py deploy/sbin/hyperflo-docker-action deploy/sbin/hyperflo-docker-info <<'EOF'
+"$PY" -I - *.py tests/*.py deploy/sbin/hyperflo-docker-action deploy/sbin/hyperflo-docker-info deploy/sbin/hyperflo-minecraft-action <<'EOF'
 import ast
 import sys
 

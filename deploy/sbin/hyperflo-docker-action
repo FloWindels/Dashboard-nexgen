@@ -37,6 +37,12 @@ if not NAME_PATTERN.fullmatch(container):
     fail("Nom de conteneur invalide")
 
 
+# Minecraft passe par hyperflo-minecraft-action (Playit + arret de 90 s
+# pour laisser le temps de sauvegarder le monde).
+if container == "minecraft":
+    fail("Utiliser hyperflo-minecraft-action pour minecraft")
+
+
 inspect = subprocess.run(
     [
         "/usr/bin/docker",

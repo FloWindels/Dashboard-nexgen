@@ -17,6 +17,11 @@ logger = logging.getLogger("hyperflo")
 CONTAINER_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 ALLOWED_ACTIONS = {"start", "stop", "restart"}
 
+# Le conteneur Minecraft est pilote avec playit.service par un script dedie
+# (arret de 90 s pour sauvegarder le monde, puis Playit).
+MINECRAFT_CONTAINER = "minecraft"
+PLAYIT_SERVICE = "playit.service"
+
 
 def _check_name(name: str) -> None:
     if not CONTAINER_NAME.fullmatch(name):
@@ -109,6 +114,12 @@ class StatsCache:
 stats_cache = StatsCache()
 
 
+def playit_state() -> str:
+    # Lecture seule, sans sudo: active, inactive, failed...
+    result = run_command(["/usr/bin/systemctl", "is-active", PLAYIT_SERVICE], timeout=5)
+    return result["stdout"] or "unknown"
+
+
 @router.get("/containers")
 def docker_containers():
     docker = get_docker()
@@ -116,7 +127,10 @@ def docker_containers():
         raise HTTPException(status_code=502, detail="Docker indisponible")
     containers = [normalize_container(raw) for raw in docker["containers"]]
     containers.sort(key=lambda container: container["name"])
-    return {"containers": containers}
+    return {
+        "containers": containers,
+        "minecraft": {"container": MINECRAFT_CONTAINER, "playit": playit_state()},
+    }
 
 
 @router.get("/stats")
@@ -134,22 +148,21 @@ def docker_action(name: str, action: str, request: Request):
 
     _check_name(name)
 
-    result = run_command(
-        [
-            "/usr/bin/sudo",
-            "-n",
-            "/usr/local/sbin/hyperflo-docker-action",
-            action,
-            name,
-        ],
-        timeout=30,
-    )
+    if name == MINECRAFT_CONTAINER:
+        command = ["/usr/bin/sudo", "-n", "/usr/local/sbin/hyperflo-minecraft-action", action]
+        timeout = 240
+    else:
+        command = ["/usr/bin/sudo", "-n", "/usr/local/sbin/hyperflo-docker-action", action, name]
+        timeout = 30
+
+    result = run_command(command, timeout=timeout)
 
     audit(
         "docker_action",
         request,
         container=name,
         action=action,
+        playit=name == MINECRAFT_CONTAINER,
         ok=result["code"] == 0,
     )
 

@@ -13,7 +13,7 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 SERVICE=hyperflo-control
 UNIT=/etc/systemd/system/$SERVICE.service
 SUDOERS=/etc/sudoers.d/$SERVICE
-SBIN_FILES=(hyperflo-docker-action hyperflo-docker-info hyperflo-docker-list hyperflo-docker-stats)
+SBIN_FILES=(hyperflo-docker-action hyperflo-docker-info hyperflo-docker-list hyperflo-docker-stats hyperflo-minecraft-action)
 
 if [ "$(id -u)" -ne 0 ]; then
     echo "A lancer avec sudo." >&2
@@ -110,6 +110,12 @@ fi
 if ! sandboxed /usr/bin/sudo -n /usr/local/sbin/hyperflo-docker-stats >/dev/null; then
     echo "Attention: hyperflo-docker-stats refuse via sudo (regle sudoers a jour?" >&2
     echo "  relancer avec --sudoers). CPU/RAM des conteneurs indisponibles." >&2
+fi
+
+# Le script Minecraft pilote playit.service via systemctl: verifie que
+# systemd repond depuis le bac a sable du service (lecture seule).
+if ! sandboxed /usr/bin/systemctl show -p ActiveState playit.service >/dev/null; then
+    echo "Attention: systemctl ne repond pas depuis le service (Playit)." >&2
 fi
 
 if [ -x /usr/bin/nvidia-smi ] && ! sandboxed /usr/bin/nvidia-smi -L >/dev/null; then

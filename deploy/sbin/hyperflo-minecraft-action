@@ -1,0 +1,111 @@
+#!/usr/bin/python3 -I
+
+# Pilote ensemble le conteneur Docker "minecraft" et playit.service.
+#
+#   hyperflo-minecraft-action start|stop|restart
+#
+# start   : demarre playit.service si besoin, puis le conteneur.
+# stop    : arrete proprement le conteneur (90 s pour sauvegarder le monde),
+#           puis playit.service.
+# restart : redemarre proprement le conteneur, puis playit.service.
+#
+# Aucun autre argument n'est accepte; le conteneur et le service sont fixes.
+
+import subprocess
+import sys
+
+CONTAINER = "minecraft"
+PLAYIT = "playit.service"
+# L'image itzg/minecraft-server sauvegarde le monde a la reception de SIGTERM.
+STOP_TIMEOUT = 90
+
+DOCKER = "/usr/bin/docker"
+SYSTEMCTL = "/usr/bin/systemctl"
+
+
+def fail(message):
+    print(message, file=sys.stderr)
+    log(f"minecraft {ACTION} echec: {message}")
+    sys.exit(1)
+
+
+def log(message):
+    subprocess.run(["/usr/bin/logger", "-t", "hyperflo-control", message], check=False)
+
+
+def run(command, timeout):
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        fail("Delai depasse: " + " ".join(command[1:3]))
+    return result
+
+
+def container_running():
+    result = run(
+        [DOCKER, "inspect", "--type", "container", "-f", "{{.State.Running}}", CONTAINER],
+        timeout=15,
+    )
+    if result.returncode != 0:
+        fail("Conteneur minecraft introuvable")
+    return result.stdout.strip() == "true"
+
+
+def playit_active():
+    return run([SYSTEMCTL, "is-active", "--quiet", PLAYIT], timeout=15).returncode == 0
+
+
+def docker(*args, timeout):
+    result = run([DOCKER, *args, CONTAINER], timeout=timeout)
+    if result.returncode != 0:
+        fail(result.stderr.strip() or f"docker {args[0]} a echoue")
+
+
+def systemctl(action):
+    result = run([SYSTEMCTL, action, PLAYIT], timeout=120)
+    if result.returncode != 0:
+        fail(result.stderr.strip() or f"systemctl {action} playit a echoue")
+
+
+if len(sys.argv) != 2 or sys.argv[1] not in {"start", "stop", "restart"}:
+    print("Usage: hyperflo-minecraft-action start|stop|restart", file=sys.stderr)
+    sys.exit(1)
+
+ACTION = sys.argv[1]
+running = container_running()
+
+if ACTION == "start":
+    started_playit = False
+    if not playit_active():
+        systemctl("start")
+        started_playit = True
+    if not running:
+        result = run([DOCKER, "start", CONTAINER], timeout=60)
+        if result.returncode != 0:
+            # Pas de tunnel ouvert sans serveur derriere.
+            if started_playit:
+                run([SYSTEMCTL, "stop", PLAYIT], timeout=120)
+            fail(result.stderr.strip() or "docker start a echoue")
+
+elif ACTION == "stop":
+    if running:
+        # Si l'arret echoue, playit reste actif: le serveur tourne toujours.
+        docker("stop", "--time", str(STOP_TIMEOUT), timeout=STOP_TIMEOUT + 30)
+    if playit_active():
+        systemctl("stop")
+
+else:
+    if running:
+        docker("restart", "--time", str(STOP_TIMEOUT), timeout=STOP_TIMEOUT + 60)
+    else:
+        docker("start", timeout=60)
+    systemctl("restart")
+
+log(f"minecraft {ACTION} (conteneur + {PLAYIT})")
+print("ok")

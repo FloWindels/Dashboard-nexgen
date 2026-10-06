@@ -32,6 +32,12 @@
     font-weight: 600;
 }
 
+.container-name .playit {
+    display: table;
+    margin-top: 4px;
+    font-weight: 400;
+}
+
 .container-image {
     max-width: 260px;
     overflow: hidden;

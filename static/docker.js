@@ -18,6 +18,8 @@ const ACTION_LABELS = {
 };
 
 let containers = [];
+// Conteneur pilote avec playit.service (voir docker_api.py).
+let minecraft = { container: "minecraft", playit: "unknown" };
 let stats = { available: true, stats: {} };
 let pendingContainer = null;
 let selectedContainer = null;
@@ -55,7 +57,14 @@ function renderContainers() {
         const containerStats = stats.stats[container.name];
         const row = document.createElement("tr");
 
-        row.appendChild(element("td", "container-name", container.name));
+        const nameCell = element("td", "container-name", container.name);
+        if (container.name === minecraft.container) {
+            const active = minecraft.playit === "active";
+            nameCell.appendChild(
+                element("div", active ? "badge ok playit" : "badge bad playit", `Playit : ${active ? "actif" : minecraft.playit}`)
+            );
+        }
+        row.appendChild(nameCell);
 
         const image = element("td", "container-image", container.image);
         image.title = container.image;
@@ -114,6 +123,7 @@ async function loadContainers() {
     try {
         const data = await apiJson("/api/docker/containers", POLL);
         containers = data.containers;
+        minecraft = data.minecraft || minecraft;
         renderContainers();
     } catch (error) {
         setText("dockerSummary", "Erreur : " + error.message);
@@ -137,20 +147,25 @@ async function loadStats() {
 async function dockerAction(name, action) {
     const message = document.getElementById("dockerMessage");
 
-    if (action !== "start" && !confirm(`Voulez-vous vraiment ${ACTION_LABELS[action]} « ${name} » ?`)) {
+    const isMinecraft = name === minecraft.container;
+    const target = isMinecraft ? `${name} et Playit` : `« ${name} »`;
+
+    if (action !== "start" && !confirm(`Voulez-vous vraiment ${ACTION_LABELS[action]} ${target} ?`)) {
         return;
     }
 
     pendingContainer = name;
     renderContainers();
-    message.textContent = `${ACTION_LABELS[action]} ${name}...`;
+    message.textContent = isMinecraft && action !== "start"
+        ? `${ACTION_LABELS[action]} ${target}... (sauvegarde du monde, jusqu'à 90 s)`
+        : `${ACTION_LABELS[action]} ${target}...`;
 
     try {
         await apiJson(`/api/docker/${encodeURIComponent(name)}/${action}`, {
             method: "POST",
             headers: { "X-Hyperflo-Action": "1" },
         });
-        message.textContent = `✓ ${name} : ${ACTION_LABELS[action]} effectué`;
+        message.textContent = `✓ ${target} : ${ACTION_LABELS[action]} effectué`;
     } catch (error) {
         message.textContent = `✗ ${name} : ${error.message}`;
     } finally {
