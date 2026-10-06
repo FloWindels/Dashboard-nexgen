@@ -1,36 +1,142 @@
-function bytes(value) {
-    const units = ["B", "KB", "MB", "GB", "TB"];
-    let index = 0;
+"use strict";
 
-    while (value >= 1024 && index < units.length - 1) {
-        value /= 1024;
-        index++;
-    }
-
-    return value.toFixed(index > 1 ? 1 : 0) + " " + units[index];
-}
-
-function uptime(seconds) {
-    const days = Math.floor(seconds / 86400);
-    seconds %= 86400;
-
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (days > 0) {
-        return `${days}j ${hours}h`;
-    }
-
-    return `${hours}h ${minutes}m`;
-}
+const { formatBytes, formatDuration } = Hyperflo;
 
 function setText(id, value) {
     document.getElementById(id).textContent = value;
 }
 
-function setBar(id, value) {
-    document.getElementById(id).style.width =
-        Math.min(100, Math.max(0, value)) + "%";
+// Barre de progression; orange au-dela de 75 %, rouge au-dela de 90 %.
+function setBar(id, percent) {
+    const bar = document.getElementById(id);
+    const value = Math.min(100, Math.max(0, Number(percent) || 0));
+    bar.style.width = value + "%";
+    bar.classList.toggle("warn", value >= 75 && value < 90);
+    bar.classList.toggle("crit", value >= 90);
+}
+
+function formatRate(bytesPerSecond) {
+    return formatBytes(bytesPerSecond) + "/s";
+}
+
+function renderCpu(data) {
+    const cpu = data.cpu;
+    setText("cpu", cpu.usage.toFixed(1) + " %");
+    setBar("cpuBar", cpu.usage);
+    setText("cpuDetails", `${cpu.cores} cœurs / ${cpu.threads} threads`);
+    setText("cpuModel", cpu.model || "");
+
+    setText(
+        "cpuTemp",
+        cpu.temperature !== null ? cpu.temperature.toFixed(0) + " °C" : "N/A"
+    );
+
+    const [load1, load5, load15] = cpu.load;
+    setText("load", `${load1.toFixed(2)} · ${load5.toFixed(2)} · ${load15.toFixed(2)}`);
+    // 100 % = tous les threads occupes en moyenne sur une minute.
+    setBar("loadBar", (load1 / Math.max(1, cpu.threads)) * 100);
+    setText("loadDetails", `Moyenne sur 1 / 5 / 15 min · ${cpu.threads} threads`);
+}
+
+function renderMemory(data) {
+    const memory = data.memory;
+    setText("ram", memory.percent.toFixed(1) + " %");
+    setBar("ramBar", memory.percent);
+    setText("ramDetails", `${formatBytes(memory.used)} utilisés / ${formatBytes(memory.total)}`);
+    setText("ramAvailable", `${formatBytes(memory.available)} disponibles`);
+    setText(
+        "swapDetails",
+        memory.swap_total
+            ? `Swap : ${formatBytes(memory.swap_used)} / ${formatBytes(memory.swap_total)}`
+            : "Pas de swap"
+    );
+}
+
+function renderGpu(data) {
+    const gpu = data.gpu;
+
+    if (!gpu.available) {
+        setText("gpu", "N/A");
+        setBar("gpuBar", 0);
+        setText("gpuDetails", "GPU indisponible");
+        setText("gpuName", "");
+        setText("vram", "N/A");
+        setBar("vramBar", 0);
+        setText("vramDetails", "");
+        return;
+    }
+
+    setText("gpu", gpu.utilization.toFixed(0) + " %");
+    setBar("gpuBar", gpu.utilization);
+    setText("gpuDetails", `${gpu.temperature.toFixed(0)} °C`);
+    setText("gpuName", gpu.name);
+
+    const vramPercent = gpu.memory_total ? (gpu.memory_used / gpu.memory_total) * 100 : 0;
+    setText("vram", `${gpu.memory_used.toFixed(0)} / ${gpu.memory_total.toFixed(0)} Mo`);
+    setBar("vramBar", vramPercent);
+    setText("vramDetails", `${vramPercent.toFixed(1)} % utilisés`);
+}
+
+function renderNetwork(data) {
+    const network = data.network;
+    setText("networkRx", formatRate(network.rx_rate));
+    setText("networkTx", formatRate(network.tx_rate));
+    setText(
+        "networkTotals",
+        `Depuis le démarrage : ↓ ${formatBytes(network.received)} · ↑ ${formatBytes(network.sent)}`
+    );
+
+    const body = document.getElementById("interfacesBody");
+    body.replaceChildren();
+
+    for (const item of network.interfaces) {
+        const row = document.createElement("tr");
+        row.appendChild(Hyperflo.element("td", "", item.name));
+
+        const state = Hyperflo.element("td");
+        state.appendChild(
+            Hyperflo.element("span", item.up ? "badge ok" : "badge bad", item.up ? "UP" : "DOWN")
+        );
+        row.appendChild(state);
+
+        row.appendChild(Hyperflo.element("td", "", item.ipv4.join(", ") || "-"));
+        row.appendChild(Hyperflo.element("td", "", item.speed ? `${item.speed} Mb/s` : "-"));
+        body.appendChild(row);
+    }
+}
+
+function renderSystem(data) {
+    setText("hostname", data.hostname);
+    setText("systemInfo", [data.system.os, data.system.kernel].filter(Boolean).join(" · "));
+    setText("uptime", formatDuration(data.uptime));
+    setText("osName", data.system.os || "");
+    setText("kernel", data.system.kernel ? `Kernel ${data.system.kernel}` : "");
+}
+
+function renderDisks(data) {
+    const disks = document.getElementById("disks");
+    disks.replaceChildren();
+
+    for (const disk of data.disks) {
+        const item = Hyperflo.element("div", "disk");
+        item.appendChild(Hyperflo.element("strong", "", disk.path));
+        item.appendChild(
+            Hyperflo.element(
+                "div",
+                "small",
+                `${formatBytes(disk.used)} utilisés / ${formatBytes(disk.total)} · `
+                + `${formatBytes(disk.free)} libres · ${disk.percent.toFixed(1)} %`
+            )
+        );
+
+        const bar = Hyperflo.element("div", "bar");
+        const value = document.createElement("div");
+        value.id = `disk-${disks.children.length}`;
+        bar.appendChild(value);
+        item.appendChild(bar);
+        disks.appendChild(item);
+        setBar(value.id, disk.percent);
+    }
 }
 
 async function refresh() {
@@ -51,86 +157,17 @@ async function refresh() {
             throw new Error(`HTTP ${response.status}`);
         }
 
-        const contentType = response.headers.get("content-type") || "";
-
-        if (!contentType.includes("application/json")) {
-            throw new Error("La réponse n'est pas du JSON : " + contentType);
-        }
-
         const data = await response.json();
 
         connection.textContent = "● En ligne";
         connection.className = "online";
 
-        setText("hostname", data.hostname);
-        setText("cpu", data.cpu.usage.toFixed(1) + "%");
-        setBar("cpuBar", data.cpu.usage);
-        setText("cpuDetails", `${data.cpu.cores} cœurs / ${data.cpu.threads} threads`);
-
-        setText("ram", data.memory.percent.toFixed(1) + "%");
-        setBar("ramBar", data.memory.percent);
-        setText("ramDetails", `${bytes(data.memory.used)} / ${bytes(data.memory.total)}`);
-
-        setText(
-            "cpuTemp",
-            data.cpu.temperature !== null
-                ? data.cpu.temperature + " °C"
-                : "N/A"
-        );
-
-        setText("uptime", uptime(data.uptime));
-        setText("networkRx", bytes(data.network.received));
-        setText("networkTx", bytes(data.network.sent));
-
-        if (data.gpu.available) {
-            setText("gpu", data.gpu.utilization.toFixed(0) + "%");
-            setText("gpuDetails", data.gpu.temperature + " °C");
-
-            const vramPercent = (data.gpu.memory_used / data.gpu.memory_total) * 100;
-
-            setText(
-                "vram",
-                data.gpu.memory_used.toFixed(0) +
-                    " / " +
-                    data.gpu.memory_total.toFixed(0) +
-                    " MB"
-            );
-
-            setBar("vramBar", vramPercent);
-            setText("gpuName", data.gpu.name);
-        } else {
-            setText("gpu", "N/A");
-            setText("gpuDetails", "GPU indisponible");
-            setText("vram", "N/A");
-            setText("gpuName", "");
-        }
-
-        const disks = document.getElementById("disks");
-        disks.replaceChildren();
-
-        for (const disk of data.disks) {
-            const container = document.createElement("div");
-            container.style.marginBottom = "18px";
-
-            const title = document.createElement("strong");
-            title.textContent = disk.path;
-            container.appendChild(title);
-
-            const info = document.createElement("div");
-            info.className = "small";
-            info.textContent = `${bytes(disk.used)} / ${bytes(disk.total)} — ${disk.percent}%`;
-            container.appendChild(info);
-
-            const bar = document.createElement("div");
-            bar.className = "bar";
-
-            const value = document.createElement("div");
-            value.style.width = disk.percent + "%";
-
-            bar.appendChild(value);
-            container.appendChild(bar);
-            disks.appendChild(container);
-        }
+        renderSystem(data);
+        renderCpu(data);
+        renderMemory(data);
+        renderGpu(data);
+        renderNetwork(data);
+        renderDisks(data);
 
         const body = document.getElementById("dockerBody");
         body.replaceChildren();

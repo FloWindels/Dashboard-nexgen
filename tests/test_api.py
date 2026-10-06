@@ -11,8 +11,22 @@ class StatusTests(unittest.TestCase):
         response = shared_session().get("/api/status")
         self.assertEqual(response.status, 200)
         data = response.json()
-        for key in ("hostname", "uptime", "cpu", "memory", "network", "disks", "gpu", "docker"):
+        for key in ("hostname", "uptime", "system", "cpu", "memory", "network", "disks", "gpu", "docker"):
             self.assertIn(key, data)
+
+        self.assertIn("os", data["system"])
+        self.assertIn("kernel", data["system"])
+        self.assertIn("model", data["cpu"])
+        self.assertEqual(len(data["cpu"]["load"]), 3)
+        for key in ("total", "used", "available", "percent", "swap_total", "swap_used"):
+            self.assertIn(key, data["memory"])
+        for key in ("received", "sent", "rx_rate", "tx_rate", "interfaces"):
+            self.assertIn(key, data["network"])
+        for interface in data["network"]["interfaces"]:
+            self.assertFalse(interface["name"].startswith(("lo", "veth", "docker", "br-")))
+        for disk in data["disks"]:
+            for key in ("path", "total", "used", "free", "percent"):
+                self.assertIn(key, disk)
 
 
 class DockerValidationTests(unittest.TestCase):

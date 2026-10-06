@@ -82,6 +82,22 @@ class FrontendLintTests(unittest.TestCase):
                 self.assertIsNone(re.search(r'\sstyle\s*=\s*["\']', code), "attribut style dans du HTML genere")
                 self.assertIsNone(re.search(r'\son[a-z]+\s*=\s*["\']', code), "gestionnaire inline dans du HTML genere")
 
+    def test_js_element_ids_exist_in_page(self):
+        # Un id mal orthographie ferait planter la page sans erreur serveur.
+        pattern = re.compile(r'(?:getElementById|setText|setBar)\(\s*"([^"]+)"')
+        for page in (ROOT / "pages").glob("*.html"):
+            html = page.read_text(encoding="utf-8")
+            ids = set(re.findall(r'\bid="([^"]+)"', html))
+            script = ROOT / "static" / f"{page.stem}.js"
+            if not script.exists():
+                continue
+            code = script.read_text(encoding="utf-8")
+            # ids crees par le script lui-meme (HTML genere ou element.id = ...)
+            ids |= set(re.findall(r'\bid\s*=\s*"([^"]+)"', code))
+            for element_id in pattern.findall(code):
+                with self.subTest(page=page.name, id=element_id):
+                    self.assertIn(element_id, ids)
+
     def test_js_brackets_are_balanced(self):
         # Verification grossiere en l'absence de Node.js: parentheses,
         # crochets et accolades equilibres hors chaines, regex et commentaires.

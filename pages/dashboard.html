@@ -18,7 +18,10 @@
         <header>
             <div id="connection">Connexion...</div>
             <h1>⚡ Hyperflo Control</h1>
-            <p id="hostname">Chargement...</p>
+            <p>
+                <span id="hostname">Chargement...</span>
+                <span id="systemInfo" class="header-info"></span>
+            </p>
         </header>
 
         <main>
@@ -28,6 +31,20 @@
                     <div class="value" id="cpu">--</div>
                     <div class="bar"><div id="cpuBar"></div></div>
                     <div class="small" id="cpuDetails">--</div>
+                    <div class="small" id="cpuModel"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Température CPU</h2>
+                    <div class="value" id="cpuTemp">--</div>
+                    <div class="small">Capteur le plus chaud</div>
+                </div>
+
+                <div class="card">
+                    <h2>Charge système</h2>
+                    <div class="value" id="load">--</div>
+                    <div class="bar"><div id="loadBar"></div></div>
+                    <div class="small" id="loadDetails">Moyenne sur 1 / 5 / 15 min</div>
                 </div>
 
                 <div class="card">
@@ -35,49 +52,63 @@
                     <div class="value" id="ram">--</div>
                     <div class="bar"><div id="ramBar"></div></div>
                     <div class="small" id="ramDetails">--</div>
-                </div>
-
-                <div class="card">
-                    <h2>Température CPU</h2>
-                    <div class="value" id="cpuTemp">--</div>
-                    <div class="small">Intel Core i7-4770</div>
-                </div>
-
-                <div class="card">
-                    <h2>Uptime</h2>
-                    <div class="value" id="uptime">--</div>
-                    <div class="small">Temps depuis le dernier démarrage</div>
+                    <div class="small" id="ramAvailable">--</div>
+                    <div class="small" id="swapDetails"></div>
                 </div>
 
                 <div class="card">
                     <h2>GPU</h2>
                     <div class="value" id="gpu">--</div>
+                    <div class="bar"><div id="gpuBar"></div></div>
                     <div class="small" id="gpuDetails">--</div>
+                    <div class="small" id="gpuName"></div>
                 </div>
 
                 <div class="card">
                     <h2>VRAM</h2>
                     <div class="value" id="vram">--</div>
                     <div class="bar"><div id="vramBar"></div></div>
-                    <div class="small" id="gpuName">--</div>
+                    <div class="small" id="vramDetails">--</div>
                 </div>
 
                 <div class="card">
-                    <h2>Réseau reçu</h2>
-                    <div class="value" id="networkRx">--</div>
-                    <div class="small">Depuis le démarrage</div>
+                    <h2>Réseau</h2>
+                    <div class="value rates">
+                        <span>↓ <span id="networkRx">--</span></span>
+                        <span>↑ <span id="networkTx">--</span></span>
+                    </div>
+                    <div class="small" id="networkTotals">--</div>
                 </div>
 
                 <div class="card">
-                    <h2>Réseau envoyé</h2>
-                    <div class="value" id="networkTx">--</div>
-                    <div class="small">Depuis le démarrage</div>
+                    <h2>Système</h2>
+                    <div class="value" id="uptime">--</div>
+                    <div class="small">Temps depuis le dernier démarrage</div>
+                    <div class="small" id="osName"></div>
+                    <div class="small" id="kernel"></div>
                 </div>
             </div>
 
             <section class="card">
-                <h2>💾 Disques</h2>
-                <div id="disks"></div>
+                <h2>💾 Stockage</h2>
+                <div id="disks" class="disks"></div>
+            </section>
+
+            <section class="card">
+                <h2>🌐 Interfaces réseau</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Interface</th>
+                                <th>État</th>
+                                <th>Adresse IPv4</th>
+                                <th>Vitesse</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interfacesBody"></tbody>
+                    </table>
+                </div>
             </section>
 
             <section class="card">
