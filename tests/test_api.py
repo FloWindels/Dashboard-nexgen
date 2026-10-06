@@ -1,9 +1,30 @@
+import http.client
 import json
+import os
+import socket
 import threading
 import time
 import unittest
+import urllib.parse
+import urllib.request
+import uuid
 
-from tests.helpers import shared_session
+from tests.helpers import BASE_URL, SESSION_COOKIE, shared_session
+
+
+def fake_ollama_aborted() -> int:
+    url = os.environ["OLLAMA_URL"] + "/_test/aborted"
+    with urllib.request.urlopen(url, timeout=5) as response:
+        return json.loads(response.read())["aborted"]
+
+
+def wait_for_aborted(minimum: int, timeout: float = 3.0) -> int:
+    deadline = time.time() + timeout
+    while True:
+        count = fake_ollama_aborted()
+        if count >= minimum or time.time() > deadline:
+            return count
+        time.sleep(0.1)
 
 
 class StatusTests(unittest.TestCase):
@@ -113,6 +134,86 @@ class OllamaTests(unittest.TestCase):
         self.assertEqual(text, "Bonjour !")
         self.assertTrue(lines[-1].get("done"))
         self.assertLess(max(latencies), 0.5, latencies)
+
+
+class OllamaStopTests(unittest.TestCase):
+    def _long_body(self, stream_id):
+        return {
+            "model": "fake:latest",
+            "messages": [{"role": "user", "content": "reponse long"}],
+            "stream_id": stream_id,
+        }
+
+    def test_stop_generation(self):
+        session = shared_session()
+        stream_id = "test-" + uuid.uuid4().hex[:12]
+        before = fake_ollama_aborted()
+        result = {}
+
+        def run():
+            result["response"] = session.post(
+                "/api/ollama/chat/stream", body=self._long_body(stream_id), timeout=30
+            )
+
+        start = time.time()
+        thread = threading.Thread(target=run)
+        thread.start()
+        time.sleep(1.0)
+
+        stop = session.post("/api/ollama/chat/stop", body={"stream_id": stream_id})
+        self.assertEqual(stop.status, 200)
+        self.assertTrue(stop.json()["stopped"])
+
+        thread.join(10)
+        # La reponse complete durerait 6 s.
+        self.assertLess(time.time() - start, 4)
+
+        lines = [json.loads(line) for line in result["response"].body.splitlines() if line.strip()]
+        self.assertEqual(lines[-1], {"done": True, "stopped": True})
+        words = [line for line in lines if line.get("message")]
+        self.assertLess(len(words), 40)
+        # Ollama a bien vu la connexion se fermer (GPU libere).
+        self.assertGreater(wait_for_aborted(before + 1), before)
+
+    def test_stop_unknown_stream(self):
+        response = shared_session().post(
+            "/api/ollama/chat/stop", body={"stream_id": "inconnu-12345678"}
+        )
+        self.assertEqual(response.status, 200)
+        self.assertFalse(response.json()["stopped"])
+
+    def test_invalid_stream_id(self):
+        response = shared_session().post(
+            "/api/ollama/chat/stop", body={"stream_id": "../x"}
+        )
+        self.assertEqual(response.status, 422)
+
+    def test_client_disconnect_aborts_ollama(self):
+        # Onglet ferme: la connexion du navigateur disparait en plein streaming.
+        session = shared_session()
+        before = fake_ollama_aborted()
+        url = urllib.parse.urlsplit(BASE_URL)
+        connection = http.client.HTTPConnection(url.hostname, url.port, timeout=10)
+        connection.request(
+            "POST",
+            "/api/ollama/chat/stream",
+            body=json.dumps(self._long_body("test-" + uuid.uuid4().hex[:12])),
+            headers={
+                "Content-Type": "application/json",
+                "Cookie": f"{SESSION_COOKIE}={session.token}",
+                "X-Hyperflo-CSRF": session.csrf,
+            },
+        )
+        response = connection.getresponse()
+        self.assertEqual(response.status, 200)
+        response.readline()
+        # shutdown(): la reponse garde une reference au socket, close() seul
+        # ne fermerait pas vraiment la connexion.
+        connection.sock.shutdown(socket.SHUT_RDWR)
+        response.close()
+        connection.close()
+
+        self.assertGreater(wait_for_aborted(before + 1, timeout=5), before)
 
 
 if __name__ == "__main__":

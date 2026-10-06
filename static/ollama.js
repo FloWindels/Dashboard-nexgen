@@ -15,6 +15,11 @@ let currentConversationId = null;
 
 let sending = false;
 
+// Generation en cours: annulation du fetch + identifiant pour le serveur.
+let currentAbort = null;
+
+let currentStreamId = null;
+
 
 /* =========================================================
    DOM
@@ -377,6 +382,20 @@ function inlineMarkdown(text) {
 }
 
 
+function codeBlock(code) {
+
+    return (
+        '<div class="code-block">'
+        + '<button type="button" class="copy-code">Copier</button>'
+        + "<pre><code>"
+        + escapeHtml(code)
+        + "</code></pre>"
+        + "</div>"
+    );
+
+}
+
+
 function markdown(text) {
 
     const lines =
@@ -440,15 +459,11 @@ function markdown(text) {
             else {
 
                 html +=
-                    "<pre><code>"
-                    +
-                    escapeHtml(
+                    codeBlock(
                         codeBuffer.join(
                             "\n"
                         )
-                    )
-                    +
-                    "</code></pre>";
+                    );
 
 
                 inCode = false;
@@ -641,15 +656,11 @@ function markdown(text) {
     if (inCode) {
 
         html +=
-            "<pre><code>"
-            +
-            escapeHtml(
+            codeBlock(
                 codeBuffer.join(
                     "\n"
                 )
-            )
-            +
-            "</code></pre>";
+            );
 
     }
 
@@ -1040,6 +1051,106 @@ async function loadModels() {
    Envoi / Streaming
 ========================================================= */
 
+function createStreamId() {
+
+    if (crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+
+    return Array.from(
+        crypto.getRandomValues(new Uint8Array(16)),
+        byte => byte.toString(16).padStart(2, "0")
+    ).join("");
+
+}
+
+
+/*
+ * Pendant une generation, le bouton Envoyer devient Stop.
+ */
+
+function setGenerating(active) {
+
+    sending =
+        active;
+
+    sendButton.classList.toggle(
+        "stop",
+        active
+    );
+
+    sendButton.textContent =
+        active
+            ? "■"
+            : "↑";
+
+    const label =
+        active
+            ? "Arrêter la génération"
+            : "Envoyer le message";
+
+    sendButton.setAttribute(
+        "aria-label",
+        label
+    );
+
+    sendButton.title =
+        label;
+
+}
+
+
+async function stopGeneration() {
+
+    if (
+        !sending
+        ||
+        !currentAbort
+    ) {
+        return;
+    }
+
+    const streamId =
+        currentStreamId;
+
+    const controller =
+        currentAbort;
+
+    try {
+
+        // Le serveur coupe Ollama (libere le GPU)...
+        await fetch(
+            "/api/ollama/chat/stop",
+            {
+                method:
+                    "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify({
+                        stream_id:
+                            streamId
+                    })
+            }
+        );
+
+    }
+    catch {
+        // ...et la fermeture de la connexion le fait aussi en secours.
+    }
+    finally {
+
+        controller.abort();
+
+    }
+
+}
+
+
 async function sendMessage() {
 
     if (sending) {
@@ -1194,9 +1305,13 @@ async function sendMessage() {
         conversation.title;
 
 
-    sending = true;
+    currentAbort =
+        new AbortController();
 
-    sendButton.disabled = true;
+    currentStreamId =
+        createStreamId();
+
+    setGenerating(true);
 
 
     /*
@@ -1318,6 +1433,9 @@ async function sendMessage() {
                     method:
                         "POST",
 
+                    signal:
+                        currentAbort.signal,
+
                     headers: {
                         "Content-Type":
                             "application/json"
@@ -1336,7 +1454,10 @@ async function sendMessage() {
                                 true,
 
                             web:
-                                conversation.web
+                                conversation.web,
+
+                            stream_id:
+                                currentStreamId
 
                         })
 
@@ -1646,17 +1767,37 @@ async function sendMessage() {
 
     catch (error) {
 
-        assistantMessage.content =
-            (
-                assistantMessage.content
-                    ? assistantMessage.content
-                    + "\n\n"
-                    : ""
-            )
-            +
-            "**Erreur Ollama :** "
-            +
-            error.message;
+        if (
+            error.name === "AbortError"
+        ) {
+
+            // Arret demande: on garde la partie deja recue.
+            assistantMessage.content =
+                (
+                    assistantMessage.content
+                        ? assistantMessage.content
+                        + "\n\n"
+                        : ""
+                )
+                +
+                "*Génération arrêtée.*";
+
+        }
+        else {
+
+            assistantMessage.content =
+                (
+                    assistantMessage.content
+                        ? assistantMessage.content
+                        + "\n\n"
+                        : ""
+                )
+                +
+                "**Erreur Ollama :** "
+                +
+                error.message;
+
+        }
 
 
         saveStorage();
@@ -1665,9 +1806,11 @@ async function sendMessage() {
 
     finally {
 
-        sending = false;
+        currentAbort = null;
 
-        sendButton.disabled = false;
+        currentStreamId = null;
+
+        setGenerating(false);
 
 
         renderMessages();
@@ -1735,7 +1878,68 @@ messageInput.addEventListener(
 
 sendButton.addEventListener(
     "click",
-    sendMessage
+    () => {
+
+        if (sending) {
+            stopGeneration();
+        }
+        else {
+            sendMessage();
+        }
+
+    }
+);
+
+
+/*
+ * Bouton "Copier" des blocs de code (HTML regenere a chaque morceau recu).
+ */
+
+messagesElement.addEventListener(
+    "click",
+    async event => {
+
+        const button =
+            event.target.closest(
+                ".copy-code"
+            );
+
+        if (!button) {
+            return;
+        }
+
+        const code =
+            button
+                .closest(".code-block")
+                .querySelector("code")
+                .textContent;
+
+        try {
+
+            await navigator.clipboard.writeText(
+                code
+            );
+
+            button.textContent =
+                "Copié ✓";
+
+        }
+        catch {
+
+            button.textContent =
+                "Échec";
+
+        }
+
+        setTimeout(
+            () => {
+                button.textContent =
+                    "Copier";
+            },
+            1500
+        );
+
+    }
 );
 
 

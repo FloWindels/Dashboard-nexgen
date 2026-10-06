@@ -439,6 +439,40 @@ body {
     background: none;
 }
 
+/* Bloc de code avec bouton "Copier" */
+
+.code-block {
+    position: relative;
+}
+
+.code-block pre {
+    padding-top: 34px;
+}
+
+.copy-code {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+
+    padding: 3px 9px;
+
+    border:
+        1px solid var(--border-light);
+
+    border-radius: 6px;
+
+    background: var(--panel);
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    font-size: 12px;
+}
+
+.copy-code:hover {
+    color: var(--text);
+}
+
 .bubble blockquote {
     margin-left: 0;
 
@@ -667,6 +701,13 @@ body {
 
 #sendButton:hover {
     filter: brightness(1.08);
+}
+
+/* Pendant une generation, le bouton devient Stop. */
+#sendButton.stop {
+    background: var(--red);
+
+    font-size: 15px;
 }
 
 #sendButton:disabled {
