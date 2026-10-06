@@ -473,6 +473,17 @@ body {
     color: var(--text);
 }
 
+.code-lang {
+    position: absolute;
+    top: 9px;
+    left: 14px;
+
+    color: var(--text-secondary);
+
+    font-family: monospace;
+    font-size: 12px;
+}
+
 .bubble blockquote {
     margin-left: 0;
 

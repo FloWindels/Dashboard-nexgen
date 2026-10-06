@@ -20,6 +20,9 @@ let currentAbort = null;
 
 let currentStreamId = null;
 
+// Stop demande pour la generation en cours.
+let stopRequested = false;
+
 
 /* =========================================================
    DOM
@@ -382,10 +385,48 @@ function inlineMarkdown(text) {
 }
 
 
-function codeBlock(code) {
+function isClosingFence(line, fence) {
+
+    const trimmed =
+        line.trim();
+
+    return (
+        trimmed.length >= fence.marker.length
+        &&
+        trimmed === fence.marker[0].repeat(trimmed.length)
+    );
+
+}
+
+
+// Retire l'indentation du bloc (jusqu'a celle de la ligne d'ouverture).
+function stripIndent(line, indent) {
+
+    let index = 0;
+
+    while (
+        index < indent
+        &&
+        (line[index] === " " || line[index] === "\t")
+    ) {
+        index++;
+    }
+
+    return line.slice(index);
+
+}
+
+
+function codeBlock(code, language = "") {
+
+    const label =
+        language
+            ? `<span class="code-lang">${escapeHtml(language)}</span>`
+            : "";
 
     return (
         '<div class="code-block">'
+        + label
         + '<button type="button" class="copy-code">Copier</button>'
         + "<pre><code>"
         + escapeHtml(code)
@@ -409,6 +450,9 @@ function markdown(text) {
     let inCode = false;
 
     let codeBuffer = [];
+
+    // Bloc ouvert: indentation, marqueur (``` ou ~~~) et langue.
+    let fence = null;
 
     let inList = false;
 
@@ -442,45 +486,66 @@ function markdown(text) {
 
         /* Bloc code */
 
-        if (
-            line.startsWith("```")
-        ) {
+        if (inCode) {
 
-            closeList();
-
-
-            if (!inCode) {
-
-                inCode = true;
-
-                codeBuffer = [];
-
-            }
-            else {
+            if (
+                isClosingFence(
+                    line,
+                    fence
+                )
+            ) {
 
                 html +=
                     codeBlock(
                         codeBuffer.join(
                             "\n"
-                        )
+                        ),
+                        fence.language
                     );
-
 
                 inCode = false;
 
-            }
+                fence = null;
 
+            }
+            else {
+
+                codeBuffer.push(
+                    stripIndent(
+                        line,
+                        fence.indent
+                    )
+                );
+
+            }
 
             continue;
 
         }
 
 
-        if (inCode) {
-
-            codeBuffer.push(
-                line
+        // Les modeles indentent souvent les blocs dans une liste numerotee.
+        const opening =
+            line.match(
+                /^([ \t]*)(`{3,}|~{3,})[ \t]*([\w+#.-]*)[ \t]*$/
             );
+
+
+        if (opening) {
+
+            // La liste n'est pas fermee: sa numerotation continue apres le bloc.
+            inCode = true;
+
+            codeBuffer = [];
+
+            fence = {
+                indent:
+                    opening[1].length,
+                marker:
+                    opening[2],
+                language:
+                    opening[3]
+            };
 
             continue;
 
@@ -563,7 +628,7 @@ function markdown(text) {
 
         const ordered =
             line.match(
-                /^\s*\d+\.\s+(.*)$/
+                /^\s*(\d+)\.\s+(.*)$/
             );
 
 
@@ -577,7 +642,8 @@ function markdown(text) {
 
                 closeList();
 
-                html += "<ol>";
+                html +=
+                    `<ol start="${Number(ordered[1])}">`;
 
                 inList = true;
 
@@ -590,7 +656,7 @@ function markdown(text) {
                 "<li>"
                 +
                 inlineMarkdown(
-                    ordered[1]
+                    ordered[2]
                 )
                 +
                 "</li>";
@@ -653,13 +719,15 @@ function markdown(text) {
     closeList();
 
 
+    // Bloc encore ouvert (reponse en cours de streaming).
     if (inCode) {
 
         html +=
             codeBlock(
                 codeBuffer.join(
                     "\n"
-                )
+                ),
+                fence.language
             );
 
     }
@@ -1110,6 +1178,8 @@ async function stopGeneration() {
         return;
     }
 
+    stopRequested = true;
+
     const streamId =
         currentStreamId;
 
@@ -1310,6 +1380,8 @@ async function sendMessage() {
 
     currentStreamId =
         createStreamId();
+
+    stopRequested = false;
 
     setGenerating(true);
 
@@ -1753,6 +1825,22 @@ async function sendMessage() {
             catch {
                 /* rien */
             }
+
+        }
+
+
+        // Le serveur a pu terminer proprement le flux avant l'annulation.
+        if (stopRequested) {
+
+            assistantMessage.content =
+                (
+                    assistantMessage.content
+                        ? assistantMessage.content
+                        + "\n\n"
+                        : ""
+                )
+                +
+                "*Génération arrêtée.*";
 
         }
 
