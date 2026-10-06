@@ -8,7 +8,7 @@ async function loadAdminStatus() {
         }
 
         document.getElementById('hostname').textContent = data.hostname || 'Inconnu';
-        document.getElementById('uptime').textContent = formatSeconds(data.uptime || 0);
+        document.getElementById('uptime').textContent = Hyperflo.formatDuration(data.uptime || 0);
         document.getElementById('cpu').textContent = `${(data.cpu?.usage ?? 0).toFixed(1)} %`;
         document.getElementById('memory').textContent = `${((data.memory?.used ?? 0) / 1024 / 1024 / 1024).toFixed(1)} Go`;
     } catch (error) {
@@ -16,15 +16,6 @@ async function loadAdminStatus() {
     }
 }
 
-function formatSeconds(totalSeconds) {
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-    if (days) return `${days}j ${hours}h ${minutes}m`;
-    if (hours) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-}
 
 loadAdminStatus();
 
@@ -54,9 +45,6 @@ const ALERT_EVENTS = new Set([
     "cross_site_blocked",
 ]);
 
-function formatDate(timestamp) {
-    return new Date(timestamp * 1000).toLocaleString("fr-FR");
-}
 
 function cell(text, className) {
     const td = document.createElement("td");
@@ -67,26 +55,13 @@ function cell(text, className) {
     return td;
 }
 
-async function apiJson(url, options) {
-    const response = await fetch(url, options);
-    let data = {};
-    try {
-        data = await response.json();
-    } catch {
-        // reponse vide
-    }
-    if (!response.ok) {
-        throw new Error(data.detail || `HTTP ${response.status}`);
-    }
-    return data;
-}
 
 async function loadSessions() {
     const body = document.getElementById("sessionsBody");
     const message = document.getElementById("sessionsMessage");
 
     try {
-        const data = await apiJson("/api/auth/sessions");
+        const data = await Hyperflo.apiJson("/api/auth/sessions");
         body.replaceChildren();
 
         for (const session of data.sessions) {
@@ -105,9 +80,9 @@ async function loadSessions() {
             const ua = cell(session.user_agent || "-", "ua");
             ua.title = session.user_agent || "";
             row.appendChild(ua);
-            row.appendChild(cell(formatDate(session.created)));
-            row.appendChild(cell(formatDate(session.last_seen)));
-            row.appendChild(cell(formatDate(session.expires)));
+            row.appendChild(cell(Hyperflo.formatDate(session.created)));
+            row.appendChild(cell(Hyperflo.formatDate(session.last_seen)));
+            row.appendChild(cell(Hyperflo.formatDate(session.expires)));
 
             const actions = document.createElement("td");
             const revoke = document.createElement("button");
@@ -129,7 +104,7 @@ async function loadSessions() {
 
 async function revokeSession(id) {
     try {
-        const data = await apiJson(
+        const data = await Hyperflo.apiJson(
             `/api/auth/sessions/${encodeURIComponent(id)}/revoke`,
             { method: "POST" }
         );
@@ -146,7 +121,7 @@ async function revokeSession(id) {
 
 async function revokeOtherSessions() {
     try {
-        const data = await apiJson("/api/auth/sessions/revoke-others", { method: "POST" });
+        const data = await Hyperflo.apiJson("/api/auth/sessions/revoke-others", { method: "POST" });
         document.getElementById("sessionsMessage").textContent =
             `${data.revoked} session(s) déconnectée(s).`;
     } catch (error) {
@@ -174,7 +149,7 @@ async function loadSecurity() {
     const eventsBody = document.getElementById("eventsBody");
 
     try {
-        const data = await apiJson("/api/security/overview?limit=100");
+        const data = await Hyperflo.apiJson("/api/security/overview?limit=100");
         const guard = data.login_guard;
         const minutes = Math.round(guard.window / 60);
 
@@ -193,14 +168,14 @@ async function loadSecurity() {
         blockedList.replaceChildren();
         for (const blocked of guard.blocked_ips) {
             const item = document.createElement("li");
-            item.textContent = `${blocked.ip} bloquée jusqu'à ${formatDate(blocked.until)}`;
+            item.textContent = `${blocked.ip} bloquée jusqu'à ${Hyperflo.formatDate(blocked.until)}`;
             blockedList.appendChild(item);
         }
 
         eventsBody.replaceChildren();
         for (const event of data.events) {
             const row = document.createElement("tr");
-            row.appendChild(cell(formatDate(event.time)));
+            row.appendChild(cell(Hyperflo.formatDate(event.time)));
 
             const label = cell("");
             const badge = document.createElement("span");
@@ -220,7 +195,7 @@ async function loadSecurity() {
 
 async function unblockLogins() {
     try {
-        await apiJson("/api/security/unblock", { method: "POST" });
+        await Hyperflo.apiJson("/api/security/unblock", { method: "POST" });
     } catch (error) {
         document.getElementById("guardSummary").textContent = "Erreur : " + error.message;
         return;

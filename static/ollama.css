@@ -1,24 +1,4 @@
-* {
-    box-sizing: border-box;
-}
 
-:root {
-    --background: #090d14;
-    --sidebar: #080c12;
-    --sidebar-secondary: #0b111a;
-    --panel: #101722;
-    --panel-hover: #141d29;
-
-    --border: #202939;
-    --border-light: #2b3748;
-
-    --text: #e8edf5;
-    --text-secondary: #8997aa;
-
-    --accent: #58a6ff;
-    --green: #4fd38a;
-    --red: #fa7970;
-}
 
 html,
 body {
@@ -58,55 +38,10 @@ body {
    Sidebar principale
 ======================================== */
 
-.main-sidebar {
-    width: 220px;
+/* Le menu commun (common.css) est fixe; ici il fait partie du flex. */
+.layout > .sidebar {
+    position: static;
     flex-shrink: 0;
-
-    background: var(--sidebar);
-
-    border-right:
-        1px solid var(--border);
-
-    padding:
-        20px 12px;
-}
-
-.logo {
-    padding: 12px;
-
-    margin-bottom: 24px;
-
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.nav-link {
-    display: block;
-
-    margin-bottom: 5px;
-
-    padding:
-        12px 14px;
-
-    border-radius: 8px;
-
-    color: var(--text-secondary);
-
-    text-decoration: none;
-
-    transition:
-        background 0.15s ease,
-        color 0.15s ease;
-}
-
-.nav-link:hover {
-    background: var(--panel-hover);
-    color: white;
-}
-
-.nav-link.active {
-    background: #182536;
-    color: var(--accent);
 }
 
 
@@ -760,7 +695,7 @@ body {
 
 @media(max-width: 1000px) {
 
-    .main-sidebar {
+    .layout > .sidebar {
         width: 190px;
     }
 
@@ -772,7 +707,7 @@ body {
 
 @media(max-width: 800px) {
 
-    .main-sidebar {
+    .layout > .sidebar {
         display: none;
     }
 

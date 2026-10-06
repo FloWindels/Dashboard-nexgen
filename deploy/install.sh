@@ -72,7 +72,8 @@ systemctl restart "$SERVICE"
 # 4. Verifications.
 ok=0
 for _ in $(seq 1 15); do
-    if curl -fsS -o /dev/null http://127.0.0.1:8080/login; then
+    # -s sans -S: pas de message d'erreur pendant que le service demarre.
+    if curl -fs -o /dev/null http://127.0.0.1:8080/login; then
         ok=1
         break
     fi

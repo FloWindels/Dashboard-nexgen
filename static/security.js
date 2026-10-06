@@ -4,7 +4,7 @@
  * Charge avant les scripts de chaque page authentifiee.
  * - Ajoute le jeton CSRF aux requetes qui modifient quelque chose.
  * - Renvoie vers /login quand la session a expire ou a ete revoquee.
- * - Ajoute un lien de deconnexion dans la navigation.
+ * - Branche le lien de deconnexion du menu.
  */
 
 (() => {
@@ -64,23 +64,17 @@
         }
     }
 
-    function addLogoutLink() {
-        const nav = document.querySelector("nav.sidebar, nav.main-sidebar");
-        if (!nav || nav.querySelector(".nav-logout")) {
-            return;
+    function bindLogoutLinks() {
+        // Le lien est insere par le serveur dans le menu commun (pages.py).
+        for (const link of document.querySelectorAll("[data-logout]")) {
+            link.addEventListener("click", logout);
         }
-        const link = document.createElement("a");
-        link.href = "/login";
-        link.className = "nav-link nav-logout";
-        link.textContent = "🚪 Déconnexion";
-        link.addEventListener("click", logout);
-        nav.appendChild(link);
     }
 
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", addLogoutLink);
+        document.addEventListener("DOMContentLoaded", bindLogoutLinks);
     } else {
-        addLogoutLink();
+        bindLogoutLinks();
     }
 
 })();

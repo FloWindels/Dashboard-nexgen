@@ -1,0 +1,217 @@
+/* =========================================================
+   Hyperflo Control - styles communs a toutes les pages
+   authentifiees. Chaque page garde son propre fichier pour
+   ce qui lui est specifique.
+========================================================= */
+
+:root {
+    --background: #090d14;
+    --sidebar: #080c12;
+    --sidebar-secondary: #0b111a;
+    --panel: #101722;
+    --panel-hover: #141d29;
+    --panel-active: #182536;
+
+    --border: #202939;
+    --border-light: #2b3748;
+
+    --text: #e8edf5;
+    --text-secondary: #8997aa;
+
+    --accent: #58a6ff;
+    --green: #4fd38a;
+    --red: #fa7970;
+    --orange: #e3b341;
+
+    --sidebar-width: 220px;
+    --radius: 14px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--background);
+    color: var(--text);
+}
+
+.hidden {
+    display: none !important;
+}
+
+
+/* =========================================================
+   Navigation
+========================================================= */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    overflow-y: auto;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: 700;
+    padding: 12px;
+    margin-bottom: 24px;
+}
+
+.nav-link {
+    display: block;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 12px 14px;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-link:hover {
+    background: var(--panel-hover);
+    color: white;
+}
+
+.nav-link.active {
+    background: var(--panel-active);
+    color: var(--accent);
+}
+
+.nav-logout {
+    margin-top: auto;
+}
+
+.nav-logout:hover {
+    color: var(--red);
+}
+
+.page {
+    margin-left: var(--sidebar-width);
+}
+
+
+/* =========================================================
+   Composants
+========================================================= */
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+}
+
+.small {
+    color: var(--text-secondary);
+}
+
+.btn {
+    background: var(--panel-active);
+    color: var(--text);
+    border: 1px solid #2b3a50;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.btn:hover {
+    background: #22334a;
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn.danger {
+    border-color: #6e2a2f;
+    color: var(--red);
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--panel-active);
+    color: var(--accent);
+    font-size: 0.8rem;
+}
+
+.badge.ok {
+    background: #12301f;
+    color: var(--green);
+}
+
+.badge.bad {
+    background: #3a1418;
+    color: var(--red);
+}
+
+.bar {
+    height: 8px;
+    background: var(--border);
+    margin-top: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.bar > div {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s ease;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+code {
+    background: var(--panel-active);
+    padding: 1px 6px;
+    border-radius: 6px;
+}
+
+
+/* =========================================================
+   Petits ecrans
+========================================================= */
+
+@media (max-width: 700px) {
+    .sidebar {
+        position: static;
+        width: 100%;
+    }
+
+    .page {
+        margin-left: 0;
+    }
+}

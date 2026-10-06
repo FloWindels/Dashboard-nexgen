@@ -11,8 +11,12 @@ Fichiers
 - system_monitor.py  : CPU, RAM, GPU, disques, reseau et liste Docker
 - docker_api.py      : start/stop/restart/details/logs Docker
 - ollama_api.py      : Ollama, streaming, thinking et recherche Web
-- pages.py           : routes HTML
+- pages.py           : routes HTML + menu commun (insere a la place de <!-- hyperflo:nav -->)
+- static/common.css  : theme, menu et composants partages
+- static/common.js   : fonctions partagees (Hyperflo.formatBytes, apiJson...)
 - static/security.js : jeton CSRF, deconnexion, retour au login si session expiree
+- tests/             : tests (lances par check.sh)
+- check.sh           : verification complete avant redemarrage
 - deploy/            : fichiers systeme (systemd, sudoers, scripts sudo) + install.sh
 
 Modele de securite
@@ -69,8 +73,9 @@ Deploiement
 -----------
 Le code est versionne avec git directement dans /opt/hyperflo-control.
 
-1. Verifier la syntaxe:
-   PYTHONDONTWRITEBYTECODE=1 venv/bin/python -c "import ast,sys; [ast.parse(open(f).read()) for f in sys.argv[1:]]" *.py
+1. Verifier (syntaxe, imports, demarrage, tests sur une instance de test
+   isolee avec des identifiants factices). Ne pas redemarrer si ca echoue:
+   ./check.sh
 2. Installer les fichiers systeme et redemarrer (sauvegarde + retour arriere
    automatique si le service ne repond plus):
    sudo ./deploy/install.sh              (ajouter --sudoers pour la regle sudo)

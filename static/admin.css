@@ -1,53 +1,4 @@
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    background: #090d14;
-    color: #e8edf5;
-}
-
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 220px;
-    background: #080c12;
-    border-right: 1px solid #202939;
-    padding: 20px 12px;
-}
-
-.logo {
-    font-size: 20px;
-    font-weight: 700;
-    padding: 12px;
-    margin-bottom: 24px;
-}
-
-.nav-link {
-    display: block;
-    color: #8997aa;
-    text-decoration: none;
-    padding: 12px 14px;
-    margin-bottom: 5px;
-    border-radius: 8px;
-}
-
-.nav-link:hover {
-    background: #141d29;
-    color: white;
-}
-
-.nav-link.active {
-    background: #182536;
-    color: #58a6ff;
-}
-
 .page {
-    margin-left: 220px;
     padding: 24px;
 }
 
@@ -56,13 +7,6 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
     margin-top: 20px;
-}
-
-.card {
-    background: #101722;
-    border: 1px solid #202939;
-    border-radius: 14px;
-    padding: 20px;
 }
 
 h2 {
@@ -75,10 +19,6 @@ h2 {
     font-size: 1.8rem;
     font-weight: 700;
     margin-bottom: 8px;
-}
-
-.small {
-    color: #8997aa;
 }
 
 .wide {
@@ -98,29 +38,6 @@ h2 {
     margin-bottom: 0;
 }
 
-.table-wrap {
-    overflow-x: auto;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-}
-
-th,
-td {
-    text-align: left;
-    padding: 8px 10px;
-    border-bottom: 1px solid #202939;
-    vertical-align: top;
-}
-
-th {
-    color: #8997aa;
-    font-weight: 600;
-}
-
 td.ua {
     max-width: 280px;
     overflow: hidden;
@@ -128,46 +45,17 @@ td.ua {
     white-space: nowrap;
 }
 
-.badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: #182536;
-    color: #58a6ff;
-    font-size: 0.8rem;
-}
-
-.badge.bad {
-    background: #3a1418;
-    color: #ff7b72;
-}
-
-.btn {
-    background: #182536;
-    color: #e8edf5;
-    border: 1px solid #2b3a50;
-    border-radius: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
-    font: inherit;
-}
-
-.btn:hover {
-    background: #22334a;
-}
-
-.btn.danger {
-    border-color: #6e2a2f;
-    color: #ff7b72;
-}
-
 .plain-list {
     margin: 8px 0 0;
     padding-left: 18px;
 }
 
-code {
-    background: #182536;
-    padding: 1px 6px;
-    border-radius: 6px;
+th,
+td {
+    padding: 8px 10px;
+    vertical-align: top;
+}
+
+table {
+    font-size: 0.9rem;
 }
