@@ -1,0 +1,107 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #090d14;
+    color: #e8edf5;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 220px;
+    background: #080c12;
+    border-right: 1px solid #202939;
+    padding: 20px 12px;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: 700;
+    padding: 12px;
+    margin-bottom: 24px;
+}
+
+.nav-link {
+    display: block;
+    color: #8997aa;
+    text-decoration: none;
+    padding: 12px 14px;
+    margin-bottom: 5px;
+    border-radius: 8px;
+}
+
+.nav-link:hover {
+    background: #141d29;
+    color: white;
+}
+
+.nav-link.active {
+    background: #182536;
+    color: #58a6ff;
+}
+
+.page {
+    margin-left: 220px;
+    padding: 24px;
+}
+
+.card {
+    background: #101722;
+    border: 1px solid #202939;
+    border-radius: 14px;
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #202939;
+}
+
+th {
+    color: #8997aa;
+}
+
+.running {
+    color: #4fd38a;
+}
+
+.stopped {
+    color: #fa7970;
+}
+
+button {
+    background: #18212f;
+    border: 1px solid #334155;
+    color: white;
+    padding: 7px 10px;
+    margin: 2px;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #253247;
+}
+
+button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+#dockerMessage {
+    margin-top: 15px;
+    color: #8997aa;
+}

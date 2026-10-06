@@ -1,0 +1,157 @@
+#!/usr/bin/python3
+
+import json
+import re
+import subprocess
+import sys
+
+NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
+
+
+def fail(message):
+    print(message, file=sys.stderr)
+    sys.exit(1)
+
+
+def run(command, timeout=10):
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False
+        )
+    except subprocess.TimeoutExpired:
+        fail("Timeout Docker")
+
+    if result.returncode != 0:
+        fail(result.stderr.strip() or "Erreur Docker")
+
+    return result.stdout
+
+
+if len(sys.argv) < 3:
+    fail("Usage: hyperflo-docker-info <details|logs> <container> [lines]")
+
+
+mode = sys.argv[1]
+container = sys.argv[2]
+
+
+if mode not in {"details", "logs"}:
+    fail("Mode non autorise")
+
+
+if not NAME_PATTERN.fullmatch(container):
+    fail("Nom de conteneur invalide")
+
+
+inspect_raw = run([
+    "/usr/bin/docker",
+    "inspect",
+    container
+])
+
+inspect = json.loads(inspect_raw)[0]
+
+
+if mode == "logs":
+
+    lines = 200
+
+    if len(sys.argv) >= 4:
+        try:
+            lines = int(sys.argv[3])
+        except ValueError:
+            fail("Nombre de lignes invalide")
+
+    lines = max(1, min(lines, 500))
+
+    result = subprocess.run(
+        [
+            "/usr/bin/docker",
+            "logs",
+            "--tail",
+            str(lines),
+            container
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False
+    )
+
+    # Docker peut écrire certains logs sur stderr.
+    logs = result.stdout
+
+    if result.stderr:
+        logs += result.stderr
+
+    print(logs)
+    sys.exit(0)
+
+
+stats = {}
+
+if inspect.get("State", {}).get("Running"):
+
+    stats_raw = run([
+        "/usr/bin/docker",
+        "stats",
+        "--no-stream",
+        "--format",
+        "{{json .}}",
+        container
+    ])
+
+    if stats_raw.strip():
+        stats = json.loads(stats_raw)
+
+
+state = inspect.get("State", {})
+
+networks = {}
+
+for name, data in inspect.get("NetworkSettings", {}).get("Networks", {}).items():
+    networks[name] = {
+        "ip": data.get("IPAddress", "")
+    }
+
+
+mounts = []
+
+for mount in inspect.get("Mounts", []):
+    mounts.append({
+        "type": mount.get("Type"),
+        "destination": mount.get("Destination")
+    })
+
+
+result = {
+    "id": inspect.get("Id", "")[:12],
+    "name": inspect.get("Name", "").lstrip("/"),
+    "image": inspect.get("Config", {}).get("Image"),
+    "created": inspect.get("Created"),
+
+    "state": {
+        "status": state.get("Status"),
+        "running": state.get("Running"),
+        "started_at": state.get("StartedAt"),
+        "finished_at": state.get("FinishedAt"),
+        "exit_code": state.get("ExitCode")
+    },
+
+    "restart_count": inspect.get("RestartCount", 0),
+
+    "restart_policy":
+        inspect.get("HostConfig", {})
+        .get("RestartPolicy", {})
+        .get("Name", ""),
+
+    "networks": networks,
+    "mounts": mounts,
+    "stats": stats
+}
+
+print(json.dumps(result))

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Ollama - Hyperflo Control</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/ollama.css"
+    >
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- Navigation principale -->
+
+    <nav
+        class="main-sidebar"
+        aria-label="Navigation principale"
+    >
+
+        <div class="logo">
+            ⚡ Hyperflo
+        </div>
+
+        <a
+            href="/"
+            class="nav-link"
+        >
+            🏠 Dashboard
+        </a>
+
+        <a
+            href="/docker"
+            class="nav-link"
+        >
+            🐳 Docker
+        </a>
+
+        <a
+            href="/ollama"
+            class="nav-link active"
+        >
+            🤖 Ollama
+        </a>
+
+        <a
+            href="/admin"
+            class="nav-link"
+        >
+            ⚙️ Administration
+        </a>
+
+    </nav>
+
+
+    <!-- Historique -->
+
+    <aside
+        class="history-sidebar"
+        aria-label="Historique des discussions"
+    >
+
+        <div class="history-header">
+
+            <button
+                class="new-chat"
+                type="button"
+                id="newChatButton"
+            >
+                ＋ Nouvelle conversation
+            </button>
+
+            <div class="history-title">
+                Historique
+            </div>
+
+        </div>
+
+        <div id="historyList"></div>
+
+    </aside>
+
+
+    <!-- Chat -->
+
+    <main
+        class="chat"
+        aria-label="Chat Ollama"
+    >
+
+        <header class="chat-header">
+
+            <div>
+
+                <h1 id="chatTitle">
+                    Nouvelle conversation
+                </h1>
+
+                <div
+                    id="connectionStatus"
+                    class="connection-status"
+                >
+                    Ollama
+                </div>
+
+            </div>
+
+
+            <div class="chat-tools">
+
+                <label class="web-toggle">
+
+                    <input
+                        type="checkbox"
+                        id="webEnabled"
+                    >
+
+                    <span>
+                        🌐 Internet
+                    </span>
+
+                </label>
+
+
+                <select
+                    id="modelSelect"
+                    aria-label="Sélection du modèle"
+                >
+
+                    <option>
+                        Chargement...
+                    </option>
+
+                </select>
+
+            </div>
+
+        </header>
+
+
+        <!-- Messages -->
+
+        <div
+            class="messages"
+            id="messages"
+        >
+
+            <div class="welcome">
+
+                <h2>
+                    🤖 Hyperflo AI
+                </h2>
+
+                <p>
+                    Discute avec les modèles Ollama installés sur
+                    hyperflo-nextgen.
+                </p>
+
+                <p class="welcome-small">
+                    Active 🌐 Internet pour permettre à Hyperflo
+                    d'effectuer une recherche Web avant de répondre.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- Input -->
+
+        <div class="input-area">
+
+            <div class="input-box">
+
+                <textarea
+                    id="messageInput"
+                    rows="1"
+                    placeholder="Envoyer un message à Ollama..."
+                    aria-label="Message"
+                ></textarea>
+
+                <button
+                    id="sendButton"
+                    type="button"
+                    aria-label="Envoyer le message"
+                >
+                    ↑
+                </button>
+
+            </div>
+
+            <div class="input-help">
+                Entrée pour envoyer • Shift + Entrée pour une nouvelle ligne
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script src="/static/ollama.js"></script>
+
+</body>
+</html>

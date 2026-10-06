@@ -1,0 +1,267 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #090d14;
+    color: #e8edf5;
+}
+
+header {
+    padding: 24px;
+    border-bottom: 1px solid #202939;
+    background: #0d131d;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+header p {
+    margin: 5px 0 0;
+    color: #8997aa;
+}
+
+main {
+    max-width: 1400px;
+    margin: auto;
+    padding: 24px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    background: #101722;
+    border: 1px solid #202939;
+    border-radius: 14px;
+    padding: 18px;
+}
+
+.card h2 {
+    margin: 0 0 14px;
+    font-size: 14px;
+    color: #8997aa;
+    text-transform: uppercase;
+}
+
+.value {
+    font-size: 27px;
+    font-weight: 700;
+}
+
+.small {
+    color: #8997aa;
+    margin-top: 7px;
+}
+
+.bar {
+    height: 8px;
+    background: #202939;
+    margin-top: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.bar > div {
+    height: 100%;
+    background: #58a6ff;
+    transition: width 0.4s ease;
+}
+
+section {
+    margin-top: 24px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #202939;
+}
+
+th {
+    color: #8997aa;
+    font-size: 13px;
+}
+
+.status-running {
+    color: #4fd38a;
+}
+
+.status-stopped {
+    color: #fa7970;
+}
+
+#connection {
+    float: right;
+    font-size: 13px;
+}
+
+.online {
+    color: #4fd38a;
+}
+
+.offline {
+    color: #fa7970;
+}
+
+.docker-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.docker-btn {
+    border: 1px solid #334155;
+    background: #18212f;
+    color: #e8edf5;
+    padding: 7px 11px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.docker-btn:hover {
+    background: #253247;
+}
+
+.docker-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.docker-btn.danger {
+    border-color: #7f1d1d;
+}
+
+.docker-btn.restart {
+    border-color: #854d0e;
+}
+
+.docker-message {
+    margin-top: 12px;
+    color: #8997aa;
+}
+
+.hidden {
+    display: none;
+}
+
+.docker-details {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #202939;
+}
+
+.docker-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.details-grid > div {
+    background: #0b111a;
+    border: 1px solid #202939;
+    padding: 14px;
+    border-radius: 10px;
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+}
+
+#dockerLogs {
+    background: #05080d;
+    border: 1px solid #202939;
+    border-radius: 10px;
+    padding: 15px;
+    max-height: 420px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    width: 220px;
+
+    background: #080c12;
+    border-right: 1px solid #202939;
+
+    padding: 20px 12px;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: 700;
+
+    padding: 12px;
+    margin-bottom: 24px;
+}
+
+.nav-link {
+    display: block;
+
+    color: #8997aa;
+    text-decoration: none;
+
+    padding: 12px 14px;
+    margin-bottom: 5px;
+
+    border-radius: 8px;
+}
+
+.nav-link:hover {
+    background: #141d29;
+    color: white;
+}
+
+.nav-link.active {
+    background: #182536;
+    color: #58a6ff;
+}
+
+.page {
+    margin-left: 220px;
+}
+
+@media(max-width: 700px) {
+
+    .sidebar {
+        position: static;
+        width: 100%;
+    }
+
+    .page {
+        margin-left: 0;
+    }
+}

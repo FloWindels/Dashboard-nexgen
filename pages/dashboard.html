@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Hyperflo Control</title>
+
+    <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            ⚡ Hyperflo
+        </div>
+
+        <a href="/" class="nav-link active">
+            🏠 Dashboard
+        </a>
+
+        <a href="/docker" class="nav-link">
+            🐳 Docker
+        </a>
+
+        <a href="/ollama" class="nav-link">
+            🤖 Ollama
+        </a>
+
+        <a href="/admin" class="nav-link">
+            ⚙️ Administration
+        </a>
+    </nav>
+
+    <div class="page">
+        <header>
+            <div id="connection">Connexion...</div>
+            <h1>⚡ Hyperflo Control</h1>
+            <p id="hostname">Chargement...</p>
+        </header>
+
+        <main>
+            <div class="grid">
+                <div class="card">
+                    <h2>CPU</h2>
+                    <div class="value" id="cpu">--</div>
+                    <div class="bar"><div id="cpuBar"></div></div>
+                    <div class="small" id="cpuDetails">--</div>
+                </div>
+
+                <div class="card">
+                    <h2>RAM</h2>
+                    <div class="value" id="ram">--</div>
+                    <div class="bar"><div id="ramBar"></div></div>
+                    <div class="small" id="ramDetails">--</div>
+                </div>
+
+                <div class="card">
+                    <h2>Température CPU</h2>
+                    <div class="value" id="cpuTemp">--</div>
+                    <div class="small">Intel Core i7-4770</div>
+                </div>
+
+                <div class="card">
+                    <h2>Uptime</h2>
+                    <div class="value" id="uptime">--</div>
+                    <div class="small">Temps depuis le dernier démarrage</div>
+                </div>
+
+                <div class="card">
+                    <h2>GPU</h2>
+                    <div class="value" id="gpu">--</div>
+                    <div class="small" id="gpuDetails">--</div>
+                </div>
+
+                <div class="card">
+                    <h2>VRAM</h2>
+                    <div class="value" id="vram">--</div>
+                    <div class="bar"><div id="vramBar"></div></div>
+                    <div class="small" id="gpuName">--</div>
+                </div>
+
+                <div class="card">
+                    <h2>Réseau reçu</h2>
+                    <div class="value" id="networkRx">--</div>
+                    <div class="small">Depuis le démarrage</div>
+                </div>
+
+                <div class="card">
+                    <h2>Réseau envoyé</h2>
+                    <div class="value" id="networkTx">--</div>
+                    <div class="small">Depuis le démarrage</div>
+                </div>
+            </div>
+
+            <section class="card">
+                <h2>💾 Disques</h2>
+                <div id="disks"></div>
+            </section>
+
+            <section class="card">
+                <h2>🐳 Docker</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Image</th>
+                            <th>État</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dockerBody"></tbody>
+                </table>
+
+                <div id="dockerMessage" class="docker-message"></div>
+
+                <div id="dockerDetails" class="docker-details hidden">
+                    <div class="docker-details-header">
+                        <div>
+                            <h2 id="detailsName">Conteneur</h2>
+                            <div id="detailsImage" class="small"></div>
+                        </div>
+
+                        <button class="docker-btn" onclick="closeDockerDetails()">
+                            ✕ Fermer
+                        </button>
+                    </div>
+
+                    <div class="details-grid">
+                        <div>
+                            <span class="small">État</span>
+                            <div id="detailsState">--</div>
+                        </div>
+
+                        <div>
+                            <span class="small">CPU</span>
+                            <div id="detailsCpu">--</div>
+                        </div>
+
+                        <div>
+                            <span class="small">RAM</span>
+                            <div id="detailsRam">--</div>
+                        </div>
+
+                        <div>
+                            <span class="small">Réseau</span>
+                            <div id="detailsNetwork">--</div>
+                        </div>
+
+                        <div>
+                            <span class="small">Processus</span>
+                            <div id="detailsPids">--</div>
+                        </div>
+
+                        <div>
+                            <span class="small">Redémarrages</span>
+                            <div id="detailsRestarts">--</div>
+                        </div>
+                    </div>
+
+                    <div class="logs-header">
+                        <h3>Logs</h3>
+                        <button class="docker-btn" onclick="refreshDockerDetails()">
+                            ↻ Actualiser
+                        </button>
+                    </div>
+
+                    <pre id="dockerLogs">Chargement...</pre>
+                </div>
+            </section>
+        </main>
+
+        <script src="/static/dashboard.js"></script>
+
+    </div>
+
+</body>
+
+</html>

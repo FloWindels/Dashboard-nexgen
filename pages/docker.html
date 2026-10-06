@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker - Hyperflo Control</title>
+    <link rel="stylesheet" href="/static/docker.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="logo">⚡ Hyperflo</div>
+        <a href="/" class="nav-link">🏠 Dashboard</a>
+        <a href="/docker" class="nav-link active">🐳 Docker</a>
+        <a href="/ollama" class="nav-link">🤖 Ollama</a>
+        <a href="/admin" class="nav-link">⚙️ Administration</a>
+    </nav>
+
+    <main class="page">
+        <h1>🐳 Docker</h1>
+        <p>Gestion des conteneurs Hyperflo</p>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Image</th>
+                        <th>État</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="dockerBody"></tbody>
+            </table>
+
+            <div id="dockerMessage"></div>
+        </div>
+    </main>
+
+    <script src="/static/docker.js"></script>
+</body>
+
+</html>

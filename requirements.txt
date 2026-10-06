@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+psutil
+argon2-cffi
+pyotp
+itsdangerous

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>
+        Connexion - Hyperflo Control
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/static/login.css"
+    >
+
+</head>
+
+
+<body>
+
+    <main class="login-page">
+
+        <section class="login-card">
+
+            <div class="logo">
+                ⚡
+            </div>
+
+            <h1>
+                Hyperflo Control
+            </h1>
+
+            <p class="subtitle">
+                Accès sécurisé à hyperflo-nextgen
+            </p>
+
+
+            <form id="loginForm">
+
+                <label for="username">
+                    Utilisateur
+                </label>
+
+                <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    autocomplete="username"
+                    value="florent"
+                    required
+                >
+
+
+                <label for="password">
+                    Mot de passe
+                </label>
+
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                    autofocus
+                >
+
+
+                <label for="totp">
+                    Code d'authentification
+                </label>
+
+                <input
+                    id="totp"
+                    name="totp"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    maxlength="6"
+                    placeholder="000000"
+                    required
+                >
+
+
+                <div
+                    id="errorMessage"
+                    class="error-message"
+                    hidden
+                ></div>
+
+
+                <button
+                    id="loginButton"
+                    type="submit"
+                >
+                    Se connecter
+                </button>
+
+            </form>
+
+
+            <div class="security-info">
+                🔒 Connexion sécurisée
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="/static/login.js"></script>
+
+</body>
+
+</html>

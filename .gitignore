@@ -1,0 +1,13 @@
+# Environnement Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Anciennes sauvegardes manuelles (remplacees par git)
+*.bak
+*.backup
+
+# Secrets: ne jamais versionner
+*.env
+.env*
