@@ -112,76 +112,12 @@
             </section>
 
             <section class="card">
-                <h2>🐳 Docker</h2>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nom</th>
-                            <th>Image</th>
-                            <th>État</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dockerBody"></tbody>
-                </table>
-
-                <div id="dockerMessage" class="docker-message"></div>
-
-                <div id="dockerDetails" class="docker-details hidden">
-                    <div class="docker-details-header">
-                        <div>
-                            <h2 id="detailsName">Conteneur</h2>
-                            <div id="detailsImage" class="small"></div>
-                        </div>
-
-                        <button class="docker-btn" id="closeDockerDetailsButton" type="button">
-                            ✕ Fermer
-                        </button>
-                    </div>
-
-                    <div class="details-grid">
-                        <div>
-                            <span class="small">État</span>
-                            <div id="detailsState">--</div>
-                        </div>
-
-                        <div>
-                            <span class="small">CPU</span>
-                            <div id="detailsCpu">--</div>
-                        </div>
-
-                        <div>
-                            <span class="small">RAM</span>
-                            <div id="detailsRam">--</div>
-                        </div>
-
-                        <div>
-                            <span class="small">Réseau</span>
-                            <div id="detailsNetwork">--</div>
-                        </div>
-
-                        <div>
-                            <span class="small">Processus</span>
-                            <div id="detailsPids">--</div>
-                        </div>
-
-                        <div>
-                            <span class="small">Redémarrages</span>
-                            <div id="detailsRestarts">--</div>
-                        </div>
-                    </div>
-
-                    <div class="logs-header">
-                        <h3>Logs</h3>
-                        <button class="docker-btn" id="refreshDockerDetailsButton" type="button">
-                            ↻ Actualiser
-                        </button>
-                    </div>
-
-                    <pre id="dockerLogs">Chargement...</pre>
+                <div class="section-header">
+                    <h2>🐳 Docker</h2>
+                    <a href="/docker" class="btn">Gérer les conteneurs →</a>
                 </div>
+                <p class="small" id="dockerSummary">--</p>
+                <div id="dockerList" class="docker-list"></div>
             </section>
         </main>
 

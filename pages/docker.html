@@ -13,25 +13,107 @@
     <!-- hyperflo:nav -->
 
     <main class="page">
-        <h1>🐳 Docker</h1>
-        <p>Gestion des conteneurs Hyperflo</p>
-
-        <div class="card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nom</th>
-                        <th>Image</th>
-                        <th>État</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="dockerBody"></tbody>
-            </table>
-
-            <div id="dockerMessage"></div>
+        <div class="page-header">
+            <div>
+                <h1>🐳 Docker</h1>
+                <p class="small" id="dockerSummary">Chargement...</p>
+            </div>
+            <div class="small" id="statsNotice"></div>
         </div>
+
+        <section class="card">
+            <div class="table-wrap">
+                <table class="containers">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Image</th>
+                            <th>État</th>
+                            <th>Uptime</th>
+                            <th>Ports</th>
+                            <th class="num">CPU</th>
+                            <th class="num">RAM</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dockerBody"></tbody>
+                </table>
+            </div>
+
+            <div id="dockerMessage" class="small message"></div>
+        </section>
+
+        <section id="dockerDetails" class="card details hidden">
+            <div class="details-header">
+                <div>
+                    <h2 id="detailsName">Conteneur</h2>
+                    <div id="detailsImage" class="small"></div>
+                </div>
+
+                <button class="btn" id="closeDetailsButton" type="button">✕ Fermer</button>
+            </div>
+
+            <div class="details-grid">
+                <div>
+                    <span class="small">État</span>
+                    <div id="detailsState">--</div>
+                </div>
+                <div>
+                    <span class="small">Démarré le</span>
+                    <div id="detailsStarted">--</div>
+                </div>
+                <div>
+                    <span class="small">Politique de redémarrage</span>
+                    <div id="detailsRestartPolicy">--</div>
+                </div>
+                <div>
+                    <span class="small">Redémarrages</span>
+                    <div id="detailsRestarts">--</div>
+                </div>
+                <div>
+                    <span class="small">CPU</span>
+                    <div id="detailsCpu">--</div>
+                </div>
+                <div>
+                    <span class="small">RAM</span>
+                    <div id="detailsRam">--</div>
+                </div>
+                <div>
+                    <span class="small">Réseau (entrée / sortie)</span>
+                    <div id="detailsNetwork">--</div>
+                </div>
+                <div>
+                    <span class="small">Processus</span>
+                    <div id="detailsPids">--</div>
+                </div>
+            </div>
+
+            <div class="details-lists">
+                <div>
+                    <h3>Réseaux</h3>
+                    <ul id="detailsNetworks" class="plain-list"></ul>
+                </div>
+                <div>
+                    <h3>Volumes et montages</h3>
+                    <ul id="detailsMounts" class="plain-list"></ul>
+                </div>
+            </div>
+
+            <div class="logs-header">
+                <h3>Logs</h3>
+                <div class="logs-tools">
+                    <label class="small" for="logLines">Lignes</label>
+                    <select id="logLines">
+                        <option value="100">100</option>
+                        <option value="200" selected>200</option>
+                        <option value="500">500</option>
+                    </select>
+                    <button class="btn" id="refreshDetailsButton" type="button">↻ Actualiser</button>
+                </div>
+            </div>
+
+            <pre id="dockerLogs" class="logs">Chargement...</pre>
+        </section>
     </main>
 
     <script src="/static/security.js"></script>

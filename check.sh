@@ -32,6 +32,7 @@ EOF
 step "2/5 Syntaxe shell"
 bash -n check.sh deploy/install.sh
 sh -n deploy/sbin/hyperflo-docker-list
+sh -n deploy/sbin/hyperflo-docker-stats
 echo "OK"
 
 step "3/5 Identifiants de test"

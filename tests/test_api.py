@@ -48,6 +48,17 @@ class DockerValidationTests(unittest.TestCase):
         )
         self.assertEqual(response.status, 400)
 
+    def test_containers_and_stats_endpoints(self):
+        # Dans l'instance de test, sudo est refuse: les deux routes doivent
+        # le signaler proprement, sans erreur 500.
+        session = shared_session()
+        containers = session.get("/api/docker/containers")
+        self.assertIn(containers.status, (200, 502))
+        stats = session.get("/api/docker/stats")
+        self.assertEqual(stats.status, 200)
+        self.assertIn("available", stats.json())
+        self.assertIn("stats", stats.json())
+
     def test_action_header_required(self):
         response = shared_session().post("/api/docker/foo/restart")
         self.assertEqual(response.status, 403)

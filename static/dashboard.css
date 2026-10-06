@@ -42,14 +42,6 @@ section {
     margin-top: 24px;
 }
 
-.status-running {
-    color: #4fd38a;
-}
-
-.status-stopped {
-    color: #fa7970;
-}
-
 #connection {
     float: right;
     font-size: 13px;
@@ -61,91 +53,6 @@ section {
 
 .offline {
     color: #fa7970;
-}
-
-.docker-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.docker-btn {
-    border: 1px solid #334155;
-    background: #18212f;
-    color: #e8edf5;
-    padding: 7px 11px;
-    border-radius: 7px;
-    cursor: pointer;
-    font-size: 13px;
-}
-
-.docker-btn:hover {
-    background: #253247;
-}
-
-.docker-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.docker-btn.danger {
-    border-color: #7f1d1d;
-}
-
-.docker-btn.restart {
-    border-color: #854d0e;
-}
-
-.docker-message {
-    margin-top: 12px;
-    color: #8997aa;
-}
-
-.docker-details {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #202939;
-}
-
-.docker-details-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-}
-
-.details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.details-grid > div {
-    background: #0b111a;
-    border: 1px solid #202939;
-    padding: 14px;
-    border-radius: 10px;
-}
-
-.logs-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 24px;
-}
-
-#dockerLogs {
-    background: #05080d;
-    border: 1px solid #202939;
-    border-radius: 10px;
-    padding: 15px;
-    max-height: 420px;
-    overflow: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: monospace;
-    font-size: 13px;
 }
 
 .card .small {
@@ -180,4 +87,28 @@ th {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 18px 24px;
+}
+
+.section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.section-header h2 {
+    margin: 0;
+}
+
+.section-header .btn {
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.docker-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
 }

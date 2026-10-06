@@ -13,7 +13,7 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 SERVICE=hyperflo-control
 UNIT=/etc/systemd/system/$SERVICE.service
 SUDOERS=/etc/sudoers.d/$SERVICE
-SBIN_FILES=(hyperflo-docker-action hyperflo-docker-info hyperflo-docker-list)
+SBIN_FILES=(hyperflo-docker-action hyperflo-docker-info hyperflo-docker-list hyperflo-docker-stats)
 
 if [ "$(id -u)" -ne 0 ]; then
     echo "A lancer avec sudo." >&2
@@ -30,7 +30,10 @@ mkdir -p "$BACKUP"
 chmod 700 "$BACKUP"
 cp -a "$UNIT" "$BACKUP/"
 for name in "${SBIN_FILES[@]}"; do
-    cp -a "/usr/local/sbin/$name" "$BACKUP/"
+    # Un nouveau script n'existe pas encore: rien a sauvegarder.
+    if [ -f "/usr/local/sbin/$name" ]; then
+        cp -a "/usr/local/sbin/$name" "$BACKUP/"
+    fi
 done
 if [ -f "$SUDOERS" ]; then
     cp -a "$SUDOERS" "$BACKUP/"
@@ -41,7 +44,11 @@ restore() {
     echo "ECHEC: restauration des fichiers systeme depuis $BACKUP" >&2
     cp -a "$BACKUP/$SERVICE.service" "$UNIT"
     for name in "${SBIN_FILES[@]}"; do
-        cp -a "$BACKUP/$name" "/usr/local/sbin/$name"
+        if [ -f "$BACKUP/$name" ]; then
+            cp -a "$BACKUP/$name" "/usr/local/sbin/$name"
+        else
+            rm -f "/usr/local/sbin/$name"
+        fi
     done
     if [ -f "$BACKUP/$SERVICE" ]; then
         cp -a "$BACKUP/$SERVICE" "$SUDOERS"
@@ -98,6 +105,11 @@ sandboxed() {
 if ! sandboxed /usr/bin/sudo -n /usr/local/sbin/hyperflo-docker-list >/dev/null; then
     echo "hyperflo ne peut pas lancer hyperflo-docker-list via sudo dans le service." >&2
     restore
+fi
+
+if ! sandboxed /usr/bin/sudo -n /usr/local/sbin/hyperflo-docker-stats >/dev/null; then
+    echo "Attention: hyperflo-docker-stats refuse via sudo (regle sudoers a jour?" >&2
+    echo "  relancer avec --sudoers). CPU/RAM des conteneurs indisponibles." >&2
 fi
 
 if [ -x /usr/bin/nvidia-smi ] && ! sandboxed /usr/bin/nvidia-smi -L >/dev/null; then

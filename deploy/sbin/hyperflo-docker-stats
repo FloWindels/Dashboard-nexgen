@@ -1,0 +1,4 @@
+#!/bin/sh
+# CPU, RAM, reseau et PIDs de tous les conteneurs en cours, une ligne JSON
+# par conteneur. Aucun argument accepte (voir sudoers).
+exec /usr/bin/docker stats --no-stream --format '{{json .}}'

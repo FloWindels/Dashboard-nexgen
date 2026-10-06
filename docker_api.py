@@ -1,11 +1,13 @@
 import json
 import logging
 import re
+import threading
+import time
 
 from fastapi import APIRouter, HTTPException, Request
 
 from security import audit
-from system_monitor import run_command
+from system_monitor import get_docker, run_command
 
 router = APIRouter(prefix="/api/docker")
 logger = logging.getLogger("hyperflo")
@@ -26,6 +28,100 @@ def _error_detail(result: dict, default: str) -> str:
     # serait plus bavard.
     message = (result["stderr"] or default).strip()
     return message[:300]
+
+
+def _parse_percent(value) -> float | None:
+    try:
+        return float(str(value).strip().rstrip("%"))
+    except ValueError:
+        return None
+
+
+def normalize_container(raw: dict) -> dict:
+    ports = [port.strip() for port in str(raw.get("Ports", "")).split(",") if port.strip()]
+    return {
+        "id": str(raw.get("ID", ""))[:12],
+        "name": str(raw.get("Names", "")),
+        "image": str(raw.get("Image", "")),
+        "state": str(raw.get("State", "")),
+        "status": str(raw.get("Status", "")),
+        "ports": ports,
+    }
+
+
+def normalize_stats(raw: dict) -> dict:
+    return {
+        "name": str(raw.get("Name", "")),
+        "cpu_percent": _parse_percent(raw.get("CPUPerc", "")),
+        "mem_usage": str(raw.get("MemUsage", "")),
+        "mem_percent": _parse_percent(raw.get("MemPerc", "")),
+        "net_io": str(raw.get("NetIO", "")),
+        "block_io": str(raw.get("BlockIO", "")),
+        "pids": str(raw.get("PIDs", "")),
+    }
+
+
+class StatsCache:
+    """docker stats --no-stream prend ~2 s: resultat partage quelques secondes."""
+
+    MAX_AGE = 3
+    # Script absent ou refuse: on ne reessaie pas a chaque rafraichissement.
+    FAILURE_MAX_AGE = 60
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._time = 0.0
+        self._data: dict | None = None
+
+    def get(self) -> dict:
+        with self._lock:
+            if self._data is None or time.monotonic() - self._time >= self._max_age():
+                self._data = self._fetch()
+                self._time = time.monotonic()
+            return self._data
+
+    def _max_age(self) -> int:
+        if self._data is not None and not self._data["available"]:
+            return self.FAILURE_MAX_AGE
+        return self.MAX_AGE
+
+    @staticmethod
+    def _fetch() -> dict:
+        result = run_command(
+            ["/usr/bin/sudo", "-n", "/usr/local/sbin/hyperflo-docker-stats"],
+            timeout=15,
+        )
+        if result["code"] != 0:
+            logger.warning("docker stats: %s", result["stderr"])
+            return {"available": False, "stats": {}}
+
+        stats = {}
+        for line in result["stdout"].splitlines():
+            try:
+                item = normalize_stats(json.loads(line))
+            except (json.JSONDecodeError, AttributeError):
+                continue
+            if item["name"]:
+                stats[item["name"]] = item
+        return {"available": True, "stats": stats}
+
+
+stats_cache = StatsCache()
+
+
+@router.get("/containers")
+def docker_containers():
+    docker = get_docker()
+    if not docker["available"]:
+        raise HTTPException(status_code=502, detail="Docker indisponible")
+    containers = [normalize_container(raw) for raw in docker["containers"]]
+    containers.sort(key=lambda container: container["name"])
+    return {"containers": containers}
+
+
+@router.get("/stats")
+def docker_stats():
+    return stats_cache.get()
 
 
 @router.post("/{name}/{action}")

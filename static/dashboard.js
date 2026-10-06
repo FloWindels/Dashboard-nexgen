@@ -139,6 +139,30 @@ function renderDisks(data) {
     }
 }
 
+function renderDocker(data) {
+    const summary = document.getElementById("dockerSummary");
+    const list = document.getElementById("dockerList");
+    list.replaceChildren();
+
+    if (!data.docker.available) {
+        summary.textContent = "Docker indisponible";
+        return;
+    }
+
+    const containers = [...data.docker.containers]
+        .sort((a, b) => String(a.Names).localeCompare(String(b.Names)));
+    const running = containers.filter(container => container.State === "running").length;
+    summary.textContent = `${running} en cours sur ${containers.length} conteneur(s)`;
+
+    for (const container of containers) {
+        const isRunning = container.State === "running";
+        const item = Hyperflo.element("span", isRunning ? "badge ok" : "badge bad");
+        item.textContent = `${isRunning ? "●" : "○"} ${container.Names}`;
+        item.title = container.Status || "";
+        list.appendChild(item);
+    }
+}
+
 async function refresh() {
     const connection = document.getElementById("connection");
 
@@ -169,66 +193,7 @@ async function refresh() {
         renderNetwork(data);
         renderDisks(data);
 
-        const body = document.getElementById("dockerBody");
-        body.replaceChildren();
-
-        if (data.docker.available) {
-            for (const container of data.docker.containers) {
-                const row = document.createElement("tr");
-
-                const name = document.createElement("td");
-                name.textContent = container.Names || "-";
-
-                const image = document.createElement("td");
-                image.textContent = container.Image || "-";
-
-                const state = document.createElement("td");
-                state.textContent = container.State || "-";
-                state.className =
-                    container.State === "running" ? "status-running" : "status-stopped";
-
-                const status = document.createElement("td");
-                status.textContent = container.Status || "-";
-
-                const actions = document.createElement("td");
-                actions.className = "docker-actions";
-
-                const startButton = document.createElement("button");
-                startButton.textContent = "▶ Start";
-                startButton.className = "docker-btn";
-                startButton.disabled = container.State === "running";
-                startButton.onclick = () => {
-                    dockerAction(container.Names, "start");
-                };
-
-                const stopButton = document.createElement("button");
-                stopButton.textContent = "■ Stop";
-                stopButton.className = "docker-btn danger";
-                stopButton.disabled = container.State !== "running";
-                stopButton.onclick = () => {
-                    dockerAction(container.Names, "stop");
-                };
-
-                const restartButton = document.createElement("button");
-                restartButton.textContent = "↻ Restart";
-                restartButton.className = "docker-btn restart";
-                restartButton.disabled = container.State !== "running";
-                restartButton.onclick = () => {
-                    dockerAction(container.Names, "restart");
-                };
-
-                const detailsButton = document.createElement("button");
-                detailsButton.textContent = "📊 Details";
-                detailsButton.className = "docker-btn";
-                detailsButton.onclick = () => {
-                    openDockerDetails(container.Names);
-                };
-
-                actions.append(detailsButton, startButton, stopButton, restartButton);
-                row.append(name, image, state, status, actions);
-                body.appendChild(row);
-            }
-        }
+        renderDocker(data);
     } catch (error) {
         console.error("Hyperflo API error:", error);
         connection.textContent = "● Erreur : " + error.message;
@@ -236,117 +201,9 @@ async function refresh() {
     }
 }
 
-async function dockerAction(container, action) {
-    const message = document.getElementById("dockerMessage");
-    const labels = {
-        start: "démarrer",
-        stop: "arrêter",
-        restart: "redémarrer"
-    };
-
-    const dangerous = action === "stop" || action === "restart";
-
-    if (dangerous) {
-        const confirmed = confirm(
-            `Voulez-vous vraiment ${labels[action]} le conteneur "${container}" ?`
-        );
-
-        if (!confirmed) {
-            return;
-        }
-    }
-
-    message.textContent = `${labels[action]} ${container}...`;
-
-    try {
-        const response = await fetch(`/api/docker/${encodeURIComponent(container)}/${action}`, {
-            method: "POST",
-            headers: {
-                "X-Hyperflo-Action": "1"
-            }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.detail || "Action Docker impossible");
-        }
-
-        message.textContent = `✓ ${container} : action ${action} effectuée`;
-        await refresh();
-    } catch (error) {
-        message.textContent = `✗ Erreur : ${error.message}`;
-    }
-}
-
-let selectedContainer = null;
-
-async function openDockerDetails(container) {
-    selectedContainer = container;
-    document.getElementById("dockerDetails").classList.remove("hidden");
-    await refreshDockerDetails();
-}
-
-function closeDockerDetails() {
-    selectedContainer = null;
-    document.getElementById("dockerDetails").classList.add("hidden");
-}
-
-async function refreshDockerDetails() {
-    if (!selectedContainer) {
-        return;
-    }
-
-    const logs = document.getElementById("dockerLogs");
-
-    try {
-        const detailsResponse = await fetch(
-            `/api/docker/${encodeURIComponent(selectedContainer)}/details`
-        );
-
-        if (!detailsResponse.ok) {
-            throw new Error("Impossible de charger les détails");
-        }
-
-        const data = await detailsResponse.json();
-
-        setText("detailsName", data.name);
-        setText("detailsImage", data.image || "-");
-        setText("detailsState", data.state.status || "-");
-        setText("detailsRestarts", String(data.restart_count ?? 0));
-
-        const stats = data.stats || {};
-        setText("detailsCpu", stats.CPUPerc || "0%");
-        setText("detailsRam", stats.MemUsage || "-");
-        setText("detailsNetwork", stats.NetIO || "-");
-        setText("detailsPids", stats.PIDs || "-");
-
-        const logsResponse = await fetch(
-            `/api/docker/${encodeURIComponent(selectedContainer)}/logs?lines=200`
-        );
-
-        if (!logsResponse.ok) {
-            throw new Error("Impossible de charger les logs");
-        }
-
-        const logsData = await logsResponse.json();
-        logs.textContent = logsData.logs || "Aucun log.";
-    } catch (error) {
-        logs.textContent = "Erreur : " + error.message;
-    }
-}
-
 async function refreshLoop() {
     await refresh();
     setTimeout(refreshLoop, 5000);
 }
-
-document
-    .getElementById("closeDockerDetailsButton")
-    .addEventListener("click", closeDockerDetails);
-
-document
-    .getElementById("refreshDockerDetailsButton")
-    .addEventListener("click", refreshDockerDetails);
 
 refreshLoop();
