@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -I
 
 import json
 import re
@@ -50,6 +50,8 @@ if not NAME_PATTERN.fullmatch(container):
 inspect_raw = run([
     "/usr/bin/docker",
     "inspect",
+    "--type",
+    "container",
     container
 ])
 

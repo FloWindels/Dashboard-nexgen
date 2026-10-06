@@ -1,0 +1,8 @@
+# /etc/sudoers.d/hyperflo-control  (root:root, mode 0440)
+# Toujours valider avec: visudo -cf <fichier>
+# (sudo-rs: env_reset est toujours actif)
+#
+# Le service n'a acces qu'a ces trois scripts. Ils valident eux-memes l'action
+# et le nom du conteneur. "" interdit tout argument a hyperflo-docker-list.
+
+hyperflo ALL=(root) NOPASSWD: /usr/local/sbin/hyperflo-docker-list "", /usr/local/sbin/hyperflo-docker-action, /usr/local/sbin/hyperflo-docker-info

@@ -1,0 +1,54 @@
+[Unit]
+Description=Hyperflo Control Dashboard
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+User=hyperflo
+Group=hyperflo
+
+EnvironmentFile=/etc/hyperflo-control.env
+
+WorkingDirectory=/opt/hyperflo-control
+
+# --workers 1: les sessions et l'anti brute-force sont en memoire.
+# --no-proxy-headers: l'application lit elle-meme CF-Connecting-IP (connexion
+#   locale de cloudflared uniquement).
+# --no-server-header: ne pas annoncer le serveur utilise.
+ExecStart=/opt/hyperflo-control/venv/bin/uvicorn app:app \
+    --host 127.0.0.1 --port 8080 \
+    --workers 1 \
+    --no-proxy-headers \
+    --no-server-header \
+    --limit-concurrency 64
+
+Restart=on-failure
+RestartSec=3
+
+# Pas de bytecode dans /opt (en lecture seule pour le service).
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# --- Durcissement ---
+# NoNewPrivileges n'est PAS active: le service doit pouvoir utiliser sudo
+# pour les scripts /usr/local/sbin/hyperflo-docker-*.
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+UMask=027
+
+[Install]
+WantedBy=multi-user.target
