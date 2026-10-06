@@ -18,7 +18,7 @@ step() {
     echo "== $*"
 }
 
-step "1/5 Syntaxe Python"
+step "1/6 Syntaxe Python"
 "$PY" -I - *.py tests/*.py deploy/sbin/hyperflo-docker-action deploy/sbin/hyperflo-docker-info <<'EOF'
 import ast
 import sys
@@ -29,13 +29,31 @@ for path in sys.argv[1:]:
 print(f"{len(sys.argv) - 1} fichiers OK")
 EOF
 
-step "2/5 Syntaxe shell"
+step "2/6 Syntaxe shell"
 bash -n check.sh deploy/install.sh
 sh -n deploy/sbin/hyperflo-docker-list
 sh -n deploy/sbin/hyperflo-docker-stats
 echo "OK"
 
-step "3/5 Identifiants de test"
+step "3/6 Droits de lecture pour le service (utilisateur hyperflo)"
+# Un fichier cree ou remplace par florent appartient a florent:florent et
+# n'est pas lisible par le service (erreur 500 en production).
+unreadable=()
+while IFS= read -r -d '' path; do
+    if [ "$(stat -c %G "$path")" != hyperflo ] \
+        && ! getfacl -p "$path" 2>/dev/null | grep -q '^group:hyperflo:r'; then
+        unreadable+=("$path")
+    fi
+done < <(find . -maxdepth 1 -name '*.py' -print0; find pages static -print0)
+if [ "${#unreadable[@]}" -ne 0 ]; then
+    echo "ECHEC: non lisible par hyperflo:" >&2
+    printf '  %s\n' "${unreadable[@]}" >&2
+    echo "Corriger avec: setfacl -m g:hyperflo:rX,m::rwX <fichiers>" >&2
+    exit 1
+fi
+echo "OK"
+
+step "4/6 Identifiants de test"
 WORKDIR="$(mktemp -d)"
 PIDS=()
 cleanup() {
@@ -81,7 +99,7 @@ export OLLAMA_URL="http://127.0.0.1:$HYPERFLO_FAKE_OLLAMA_PORT"
 export HYPERFLO_TEST_URL="http://127.0.0.1:$HYPERFLO_TEST_PORT"
 echo "OK (port $HYPERFLO_TEST_PORT)"
 
-step "4/5 Demarrage de l'application de test"
+step "5/6 Demarrage de l'application de test"
 "$PY" -I tests/fake_ollama.py "$HYPERFLO_FAKE_OLLAMA_PORT" &
 PIDS+=($!)
 "$PWD/venv/bin/uvicorn" app:app \
@@ -105,7 +123,7 @@ if [ "$started" -ne 1 ]; then
 fi
 echo "OK (imports et chargement de FastAPI)"
 
-step "5/5 Tests"
+step "6/6 Tests"
 if ! "$PY" -I -m unittest discover -s tests -t . "$@"; then
     echo
     echo "Journal de l'instance de test:" >&2
