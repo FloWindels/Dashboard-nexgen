@@ -31,7 +31,10 @@ async function dockerAction(container, action) {
 }
 
 async function loadDocker() {
-    const response = await fetch("/api/status");
+    const response = await fetch("/api/status", {
+        // Rafraichissement automatique: ne prolonge pas la session.
+        headers: { "X-Hyperflo-Poll": "1" }
+    });
     const data = await response.json();
 
     const body = document.getElementById("dockerBody");

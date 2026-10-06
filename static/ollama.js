@@ -1225,7 +1225,7 @@ async function sendMessage() {
         <details
             class="thinking-box"
             id="liveThinkingBox"
-            style="display:none"
+            hidden
             open
         >
 
@@ -1513,8 +1513,8 @@ async function sendMessage() {
                         thinkingChunk;
 
 
-                    thinkingBox.style.display =
-                        "block";
+                    thinkingBox.hidden =
+                        false;
 
 
                     thinkingElement.textContent =

@@ -1,13 +1,37 @@
 import json
+import logging
 import urllib.error
 import urllib.request
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 from config import OLLAMA_API_KEY, OLLAMA_URL
 
 router = APIRouter(prefix="/api/ollama")
+logger = logging.getLogger("hyperflo")
+
+# Les routes sont declarees en "def" (et non "async def"): FastAPI les execute
+# dans un thread, ce qui evite que les appels urllib bloquants figent toute
+# l'application pendant une generation.
+
+
+class ChatMessage(BaseModel):
+    role: Literal["system", "user", "assistant"]
+    content: str = Field(max_length=1_000_000)
+
+
+class ChatBody(BaseModel):
+    model: str = Field(
+        min_length=1,
+        max_length=200,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@-]*$",
+    )
+    messages: list[ChatMessage] = Field(max_length=1000)
+    think: bool = True
+    web: bool = False
 
 
 def ollama_request(path: str, method: str = "GET", payload=None, timeout: int = 120):
@@ -30,10 +54,8 @@ def ollama_request(path: str, method: str = "GET", payload=None, timeout: int = 
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.loads(response.read().decode("utf-8"))
     except Exception as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Ollama indisponible: {exc}",
-        ) from exc
+        logger.warning("Ollama %s %s: %s", method, path, exc)
+        raise HTTPException(status_code=502, detail="Ollama indisponible") from exc
 
 
 def ollama_cloud_request(path: str, payload: dict, timeout: int = 30):
@@ -58,7 +80,7 @@ def web_search(query: str, max_results: int = 4):
     data = ollama_cloud_request(
         "/api/web_search",
         {
-            "query": query,
+            "query": query[:2000],
             "max_results": max_results,
         },
     )
@@ -78,20 +100,10 @@ def ollama_models():
 
 
 @router.post("/chat")
-async def ollama_chat(request: Request):
-    body = await request.json()
-    model = body.get("model")
-    messages = body.get("messages", [])
-
-    if not model:
-        raise HTTPException(status_code=400, detail="Modele manquant")
-
-    if not isinstance(messages, list):
-        raise HTTPException(status_code=400, detail="Messages invalides")
-
+def ollama_chat(body: ChatBody):
     payload = {
-        "model": model,
-        "messages": messages,
+        "model": body.model,
+        "messages": [message.model_dump() for message in body.messages],
         "stream": False,
     }
 
@@ -106,30 +118,16 @@ async def ollama_chat(request: Request):
 
 
 @router.post("/chat/stream")
-async def ollama_chat_stream(request: Request):
-    body = await request.json()
-
-    model = body.get("model")
-    messages = body.get("messages", [])
-    think = bool(body.get("think", True))
-    use_web = bool(body.get("web", False))
-
-    if not model:
-        raise HTTPException(status_code=400, detail="Modele manquant")
-
-    if not isinstance(messages, list):
-        raise HTTPException(status_code=400, detail="Messages invalides")
-
-    # Copie pour ne pas modifier la liste recue du client de facon inattendue.
-    ollama_messages = list(messages)
+def ollama_chat_stream(body: ChatBody):
+    ollama_messages = [message.model_dump() for message in body.messages]
     web_sources = []
 
-    if use_web and ollama_messages:
+    if body.web and ollama_messages:
         last_user_message = ""
 
         for message in reversed(ollama_messages):
-            if isinstance(message, dict) and message.get("role") == "user":
-                last_user_message = str(message.get("content", ""))
+            if message["role"] == "user":
+                last_user_message = message["content"]
                 break
 
         if last_user_message:
@@ -167,19 +165,20 @@ async def ollama_chat_stream(request: Request):
                     ] + ollama_messages
 
             except Exception as exc:
+                logger.warning("Recherche Web: %s", exc)
                 web_sources = [
                     {
                         "title": "Erreur recherche Web",
                         "url": "",
-                        "error": str(exc),
+                        "error": "Recherche Web indisponible",
                     }
                 ]
 
     payload = {
-        "model": model,
+        "model": body.model,
         "messages": ollama_messages,
         "stream": True,
-        "think": think,
+        "think": body.think,
     }
 
     def generate():
@@ -209,7 +208,8 @@ async def ollama_chat_stream(request: Request):
                         break
                     yield line
         except Exception as exc:
-            error = {"error": str(exc), "done": True}
+            logger.warning("Ollama stream: %s", exc)
+            error = {"error": "Ollama indisponible", "done": True}
             yield (json.dumps(error) + "\n").encode("utf-8")
 
     return StreamingResponse(

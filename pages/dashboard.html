@@ -124,7 +124,7 @@
                             <div id="detailsImage" class="small"></div>
                         </div>
 
-                        <button class="docker-btn" onclick="closeDockerDetails()">
+                        <button class="docker-btn" id="closeDockerDetailsButton" type="button">
                             ✕ Fermer
                         </button>
                     </div>
@@ -163,7 +163,7 @@
 
                     <div class="logs-header">
                         <h3>Logs</h3>
-                        <button class="docker-btn" onclick="refreshDockerDetails()">
+                        <button class="docker-btn" id="refreshDockerDetailsButton" type="button">
                             ↻ Actualiser
                         </button>
                     </div>
@@ -173,6 +173,7 @@
             </section>
         </main>
 
+        <script src="/static/security.js"></script>
         <script src="/static/dashboard.js"></script>
 
     </div>

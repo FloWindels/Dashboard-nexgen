@@ -19,7 +19,7 @@
 
     <main class="page">
         <h1>⚙️ Administration</h1>
-        <p>Les fonctions sensibles seront disponibles ici.</p>
+        <p>Sessions, sécurité et état du serveur.</p>
 
         <div class="grid">
             <div class="card">
@@ -51,8 +51,73 @@
                 <div class="small">Mémoire utilisée</div>
             </div>
         </div>
+
+        <section class="card wide">
+            <div class="card-header">
+                <h2>🔐 Sessions actives</h2>
+                <button id="revokeOthersButton" class="btn danger" type="button">
+                    Déconnecter les autres sessions
+                </button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Session</th>
+                            <th>IP</th>
+                            <th>Navigateur</th>
+                            <th>Ouverte</th>
+                            <th>Dernière activité</th>
+                            <th>Expire</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessionsBody"></tbody>
+                </table>
+            </div>
+            <div id="sessionsMessage" class="small"></div>
+        </section>
+
+        <section class="card wide">
+            <div class="card-header">
+                <h2>🛡️ Protection de connexion</h2>
+                <button id="unblockButton" class="btn" type="button">
+                    Lever les blocages
+                </button>
+            </div>
+            <div id="guardSummary" class="small">Chargement...</div>
+            <ul id="blockedIps" class="plain-list"></ul>
+        </section>
+
+        <section class="card wide">
+            <div class="card-header">
+                <h2>📜 Journal de sécurité</h2>
+                <button id="refreshEventsButton" class="btn" type="button">
+                    ↻ Actualiser
+                </button>
+            </div>
+            <p class="small">
+                Les 100 derniers événements depuis le démarrage du service.
+                L'historique complet est dans journald :
+                <code>journalctl -u hyperflo-control | grep hyperflo-audit</code>
+            </p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Événement</th>
+                            <th>IP</th>
+                            <th>Détails</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventsBody"></tbody>
+                </table>
+            </div>
+        </section>
     </main>
 
+    <script src="/static/security.js"></script>
     <script src="/static/admin.js"></script>
 </body>
 

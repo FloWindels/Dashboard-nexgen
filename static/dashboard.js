@@ -41,7 +41,9 @@ async function refresh() {
             cache: "no-store",
             credentials: "include",
             headers: {
-                Accept: "application/json"
+                Accept: "application/json",
+                // Rafraichissement automatique: ne prolonge pas la session.
+                "X-Hyperflo-Poll": "1"
             }
         });
 
@@ -301,5 +303,13 @@ async function refreshLoop() {
     await refresh();
     setTimeout(refreshLoop, 5000);
 }
+
+document
+    .getElementById("closeDockerDetailsButton")
+    .addEventListener("click", closeDockerDetails);
+
+document
+    .getElementById("refreshDockerDetailsButton")
+    .addEventListener("click", refreshDockerDetails);
 
 refreshLoop();

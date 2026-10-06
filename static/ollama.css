@@ -520,6 +520,10 @@ body {
    Thinking
 ======================================== */
 
+.thinking-box[hidden] {
+    display: none;
+}
+
 .thinking-box {
     margin-bottom: 16px;
 
