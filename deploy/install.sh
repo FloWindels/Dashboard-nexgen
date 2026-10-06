@@ -13,7 +13,8 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 SERVICE=hyperflo-control
 UNIT=/etc/systemd/system/$SERVICE.service
 SUDOERS=/etc/sudoers.d/$SERVICE
-SBIN_FILES=(hyperflo-docker-action hyperflo-docker-info hyperflo-docker-list hyperflo-docker-stats hyperflo-minecraft-action)
+SBIN_FILES=(hyperflo-docker-action hyperflo-docker-info hyperflo-docker-list hyperflo-docker-stats
+    hyperflo-minecraft-action hyperflo-service-action hyperflo-service-logs hyperflo-power)
 
 if [ "$(id -u)" -ne 0 ]; then
     echo "A lancer avec sudo." >&2
@@ -116,6 +117,10 @@ fi
 # systemd repond depuis le bac a sable du service (lecture seule).
 if ! sandboxed /usr/bin/systemctl show -p ActiveState playit.service >/dev/null; then
     echo "Attention: systemctl ne repond pas depuis le service (Playit)." >&2
+fi
+
+if ! sandboxed /usr/bin/sudo -n /usr/local/sbin/hyperflo-service-logs hyperflo 1 >/dev/null; then
+    echo "Attention: hyperflo-service-logs refuse via sudo (relancer avec --sudoers)." >&2
 fi
 
 if [ -x /usr/bin/nvidia-smi ] && ! sandboxed /usr/bin/nvidia-smi -L >/dev/null; then

@@ -5,6 +5,12 @@
 # Le service n'a acces qu'a ces scripts. Ceux qui prennent des arguments
 # valident eux-memes l'action et le nom du conteneur. "" interdit tout
 # argument a hyperflo-docker-list et hyperflo-docker-stats; le script
-# Minecraft n'accepte que start, stop ou restart.
+# Minecraft n'accepte que start, stop ou restart; les actions sur les
+# services et l'alimentation sont listees une par une. hyperflo-service-logs
+# valide lui-meme la source et le nombre de lignes.
 
-hyperflo ALL=(root) NOPASSWD: /usr/local/sbin/hyperflo-docker-list "", /usr/local/sbin/hyperflo-docker-stats "", /usr/local/sbin/hyperflo-docker-action, /usr/local/sbin/hyperflo-docker-info, /usr/local/sbin/hyperflo-minecraft-action start, /usr/local/sbin/hyperflo-minecraft-action stop, /usr/local/sbin/hyperflo-minecraft-action restart
+hyperflo ALL=(root) NOPASSWD: /usr/local/sbin/hyperflo-docker-list "", /usr/local/sbin/hyperflo-docker-stats "", /usr/local/sbin/hyperflo-docker-action, /usr/local/sbin/hyperflo-docker-info, /usr/local/sbin/hyperflo-minecraft-action start, /usr/local/sbin/hyperflo-minecraft-action stop, /usr/local/sbin/hyperflo-minecraft-action restart, \
+    /usr/local/sbin/hyperflo-service-action start playit, /usr/local/sbin/hyperflo-service-action stop playit, /usr/local/sbin/hyperflo-service-action restart playit, \
+    /usr/local/sbin/hyperflo-service-action restart cloudflared, /usr/local/sbin/hyperflo-service-action restart hyperflo, \
+    /usr/local/sbin/hyperflo-service-logs, \
+    /usr/local/sbin/hyperflo-power reboot, /usr/local/sbin/hyperflo-power poweroff

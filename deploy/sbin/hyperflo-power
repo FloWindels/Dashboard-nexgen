@@ -1,0 +1,52 @@
+#!/usr/bin/python3 -I
+
+# Redemarrage ou extinction du serveur depuis Hyperflo Control.
+#
+#   hyperflo-power reboot|poweroff
+#
+# Minecraft est d'abord arrete proprement (90 s pour sauvegarder le monde):
+# a l'arret du systeme, Docker ne lui laisserait que 10 s. Si cet arret
+# echoue, rien n'est fait.
+
+import subprocess
+import sys
+
+DOCKER = "/usr/bin/docker"
+SYSTEMCTL = "/usr/bin/systemctl"
+MINECRAFT_ACTION = "/usr/local/sbin/hyperflo-minecraft-action"
+
+
+def fail(message):
+    print(message, file=sys.stderr)
+    sys.exit(1)
+
+
+def log(message):
+    subprocess.run(["/usr/bin/logger", "-t", "hyperflo-control", message], check=False)
+
+
+if len(sys.argv) != 2 or sys.argv[1] not in {"reboot", "poweroff"}:
+    fail("Usage: hyperflo-power reboot|poweroff")
+
+action = sys.argv[1]
+
+running = subprocess.run(
+    [DOCKER, "inspect", "--type", "container", "-f", "{{.State.Running}}", "minecraft"],
+    capture_output=True,
+    text=True,
+    timeout=15,
+    check=False,
+)
+if running.returncode == 0 and running.stdout.strip() == "true":
+    try:
+        stop = subprocess.run([MINECRAFT_ACTION, "stop"], capture_output=True, text=True, timeout=200, check=False)
+    except subprocess.TimeoutExpired:
+        fail("Arret de Minecraft trop long: annule")
+    if stop.returncode != 0:
+        fail("Arret propre de Minecraft impossible: annule (" + stop.stderr.strip() + ")")
+
+log(f"serveur {action} demande depuis Hyperflo Control")
+result = subprocess.run([SYSTEMCTL, action], capture_output=True, text=True, timeout=30, check=False)
+if result.returncode != 0:
+    fail(result.stderr.strip() or f"systemctl {action} a echoue")
+print("ok")

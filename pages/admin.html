@@ -26,6 +26,58 @@
 
         <section class="card wide">
             <div class="card-header">
+                <h2>📄 Logs</h2>
+                <div class="logs-tools">
+                    <select id="logSource" aria-label="Source des logs">
+                        <option value="hyperflo">Hyperflo Control</option>
+                        <option value="hyperflo-audit">Hyperflo Control (audit seulement)</option>
+                        <option value="playit">Playit</option>
+                        <option value="cloudflared">Cloudflared</option>
+                        <option value="ssh">SSH</option>
+                        <option value="docker">Docker (démon)</option>
+                        <option value="container:ollama">Ollama (conteneur)</option>
+                        <option value="container:minecraft">Minecraft (conteneur)</option>
+                    </select>
+                    <select id="logLines" aria-label="Nombre de lignes">
+                        <option value="100">100 lignes</option>
+                        <option value="200" selected>200 lignes</option>
+                        <option value="500">500 lignes</option>
+                    </select>
+                    <button id="loadLogsButton" class="btn" type="button">Afficher</button>
+                </div>
+            </div>
+            <pre id="serviceLogs" class="logs">Choisis une source puis « Afficher ».</pre>
+        </section>
+
+        <section class="card wide">
+            <div class="card-header">
+                <h2>⏻ Alimentation</h2>
+                <div class="logs-tools">
+                    <button class="btn" type="button" data-power="reboot">Redémarrer le serveur</button>
+                    <button class="btn danger" type="button" data-power="poweroff">Éteindre le serveur</button>
+                </div>
+            </div>
+            <p class="small">
+                Minecraft est d'abord arrêté proprement (sauvegarde du monde, jusqu'à 90 s).
+                Après une extinction, le serveur ne pourra être rallumé que physiquement.
+            </p>
+
+            <form id="powerForm" class="power-form hidden" autocomplete="off">
+                <p id="powerQuestion"></p>
+                <label for="powerConfirm">Nom du serveur (<code id="powerHostname"></code>)</label>
+                <input id="powerConfirm" type="text" maxlength="64" spellcheck="false" autocomplete="off" required>
+                <label for="powerTotp">Code TOTP</label>
+                <input id="powerTotp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+                <div class="logs-tools">
+                    <button class="btn danger" id="powerSubmit" type="submit">Confirmer</button>
+                    <button class="btn" id="powerCancel" type="button">Annuler</button>
+                </div>
+            </form>
+            <div id="powerMessage" class="small"></div>
+        </section>
+
+        <section class="card wide">
+            <div class="card-header">
                 <h2>🔐 Sessions actives</h2>
                 <button id="revokeOthersButton" class="btn danger" type="button">
                     Déconnecter les autres sessions

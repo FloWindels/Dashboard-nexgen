@@ -18,6 +18,66 @@ class ServicesEndpointTests(unittest.TestCase):
             self.assertIn(service["state"], {ONLINE, OFFLINE, ERROR})
 
 
+class AdminActionTests(unittest.TestCase):
+    def test_services_list_actions(self):
+        services = {s["id"]: s for s in shared_session().get("/api/admin/services").json()["services"]}
+        self.assertEqual(services["playit"]["actions"], ["start", "stop", "restart"])
+        self.assertEqual(services["cloudflared"]["actions"], ["restart"])
+        self.assertEqual(services["ssh"]["actions"], [])
+        self.assertEqual(services["docker"]["actions"], [])
+
+    def test_action_requires_header(self):
+        response = shared_session().post("/api/admin/services/playit/restart")
+        self.assertEqual(response.status, 403)
+
+    def test_refused_service_actions(self):
+        session = shared_session()
+        for path in ("ssh/restart", "cloudflared/stop", "docker/restart", "playit/kill"):
+            with self.subTest(path=path):
+                response = session.post(
+                    f"/api/admin/services/{path}", headers={"X-Hyperflo-Action": "1"}
+                )
+                self.assertEqual(response.status, 400)
+
+    def test_refused_log_source(self):
+        response = shared_session().get("/api/admin/logs?source=auth&lines=10")
+        self.assertEqual(response.status, 400)
+
+    def test_power_requires_header(self):
+        response = shared_session().post(
+            "/api/admin/power", body={"action": "reboot", "confirm": "x", "totp": "000000"}
+        )
+        self.assertEqual(response.status, 403)
+
+    def test_power_requires_hostname(self):
+        response = shared_session().post(
+            "/api/admin/power",
+            body={"action": "reboot", "confirm": "mauvais-nom", "totp": "000000"},
+            headers={"X-Hyperflo-Action": "1"},
+        )
+        self.assertEqual(response.status, 400)
+
+    def test_power_requires_totp(self):
+        session = shared_session()
+        hostname = session.get("/api/admin/services").json()["hostname"]
+        response = session.post(
+            "/api/admin/power",
+            body={"action": "poweroff", "confirm": hostname, "totp": "000000"},
+            headers={"X-Hyperflo-Action": "1"},
+        )
+        self.assertEqual(response.status, 403)
+        events = [e["event"] for e in session.get("/api/security/overview").json()["events"]]
+        self.assertIn("power_denied", events)
+
+    def test_power_rejects_unknown_action(self):
+        response = shared_session().post(
+            "/api/admin/power",
+            body={"action": "halt", "confirm": "x", "totp": "000000"},
+            headers={"X-Hyperflo-Action": "1"},
+        )
+        self.assertEqual(response.status, 422)
+
+
 class SystemdStatusTests(unittest.TestCase):
     def test_active(self):
         status = systemd_status(

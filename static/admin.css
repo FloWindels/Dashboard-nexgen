@@ -89,3 +89,67 @@ table {
     font-family: monospace;
     font-size: 12px;
 }
+
+.service-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.service-actions .btn {
+    padding: 4px 9px;
+    font-size: 12px;
+}
+
+.logs-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.logs-tools select,
+.power-form input {
+    background: var(--panel-active);
+    color: var(--text);
+    border: 1px solid #2b3a50;
+    border-radius: 8px;
+    padding: 7px 8px;
+    font: inherit;
+}
+
+.logs {
+    background: #05080d;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 15px;
+    max-height: 480px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: monospace;
+    font-size: 12px;
+    margin: 0;
+}
+
+.power-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 380px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid #6e2a2f;
+    border-radius: 10px;
+}
+
+.power-form p {
+    margin: 0 0 4px;
+    font-weight: 600;
+}
+
+.power-form label {
+    color: var(--text-secondary);
+    font-size: 13px;
+}

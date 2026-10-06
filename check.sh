@@ -27,7 +27,8 @@ step() {
 }
 
 step "1/7 Syntaxe Python"
-"$PY" "${PYFLAGS[@]}" - *.py tests/*.py deploy/sbin/hyperflo-docker-action deploy/sbin/hyperflo-docker-info deploy/sbin/hyperflo-minecraft-action <<'EOF'
+"$PY" "${PYFLAGS[@]}" - *.py tests/*.py deploy/sbin/hyperflo-docker-action deploy/sbin/hyperflo-docker-info deploy/sbin/hyperflo-minecraft-action \
+    deploy/sbin/hyperflo-service-action deploy/sbin/hyperflo-service-logs deploy/sbin/hyperflo-power <<'EOF'
 import ast
 import sys
 

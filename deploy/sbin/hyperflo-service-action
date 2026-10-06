@@ -1,0 +1,57 @@
+#!/usr/bin/python3 -I
+
+# Actions autorisees sur quelques services systemd, depuis Hyperflo Control.
+#
+#   hyperflo-service-action <action> <service>
+#
+# La liste ci-dessous est la seule source d'autorite: tout le reste est
+# refuse. Les redemarrages qui coupent Hyperflo lui-meme (son service ou le
+# tunnel Cloudflare) sont lances sans attendre (--no-block).
+
+import subprocess
+import sys
+
+SYSTEMCTL = "/usr/bin/systemctl"
+
+# service: (unite systemd, actions autorisees, sans attendre la fin)
+SERVICES = {
+    "playit": ("playit.service", {"start", "stop", "restart"}, False),
+    # Arreter cloudflared couperait l'acces au dashboard: redemarrage seulement.
+    "cloudflared": ("cloudflared.service", {"restart"}, True),
+    "hyperflo": ("hyperflo-control.service", {"restart"}, True),
+}
+
+
+def fail(message):
+    print(message, file=sys.stderr)
+    sys.exit(1)
+
+
+if len(sys.argv) != 3:
+    fail("Usage: hyperflo-service-action <action> <service>")
+
+action, service = sys.argv[1], sys.argv[2]
+
+if service not in SERVICES:
+    fail("Service non autorise")
+
+unit, allowed, no_block = SERVICES[service]
+
+if action not in allowed:
+    fail("Action non autorisee pour ce service")
+
+command = [SYSTEMCTL]
+if no_block:
+    command.append("--no-block")
+command += [action, unit]
+
+try:
+    result = subprocess.run(command, capture_output=True, text=True, timeout=120, check=False)
+except subprocess.TimeoutExpired:
+    fail("Delai depasse")
+
+if result.returncode != 0:
+    fail(result.stderr.strip() or f"systemctl {action} {unit} a echoue")
+
+subprocess.run(["/usr/bin/logger", "-t", "hyperflo-control", f"service {action} {unit}"], check=False)
+print("ok")

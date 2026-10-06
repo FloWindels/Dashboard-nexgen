@@ -4,6 +4,18 @@
 
 const SERVICES_REFRESH_MS = 15000;
 
+const ACTION_LABELS = {
+    start: "▶ Démarrer",
+    stop: "■ Arrêter",
+    restart: "↻ Redémarrer",
+};
+
+// Ces redemarrages coupent la connexion au dashboard quelques secondes.
+const SELF_RESTARTS = new Set(["hyperflo", "cloudflared"]);
+
+let serverHostname = "";
+let serviceActionPending = false;
+
 const STATE_BADGES = {
     ONLINE: "badge ok",
     OFFLINE: "badge",
@@ -37,12 +49,58 @@ async function loadServices() {
                 : "";
             tile.appendChild(Hyperflo.element("div", "small service-unit", source + since));
 
+            if (service.actions && service.actions.length) {
+                const actions = Hyperflo.element("div", "service-actions");
+                for (const action of service.actions) {
+                    const button = Hyperflo.element(
+                        "button",
+                        action === "stop" ? "btn danger" : "btn",
+                        ACTION_LABELS[action] || action
+                    );
+                    button.type = "button";
+                    button.disabled = serviceActionPending;
+                    button.addEventListener("click", () => serviceAction(service, action));
+                    actions.appendChild(button);
+                }
+                tile.appendChild(actions);
+            }
+
             grid.appendChild(tile);
         }
 
+        serverHostname = data.hostname || "";
         checked.textContent = `Vérifié à ${new Date(data.checked_at * 1000).toLocaleTimeString("fr-FR")}`;
     } catch (error) {
         checked.textContent = "Erreur : " + error.message;
+    }
+}
+
+async function serviceAction(service, action) {
+    const label = (ACTION_LABELS[action] || action).replace(/^\S+\s/, "").toLowerCase();
+    const warning = SELF_RESTARTS.has(service.id)
+        ? "\n\nLe dashboard sera coupé quelques secondes."
+        : "";
+    if (!confirm(`${label} ${service.name} ?${warning}`)) {
+        return;
+    }
+
+    const checked = document.getElementById("servicesChecked");
+    const url = service.kind === "docker"
+        ? `/api/docker/${encodeURIComponent(service.unit)}/${action}`
+        : `/api/admin/services/${encodeURIComponent(service.id)}/${action}`;
+
+    serviceActionPending = true;
+    checked.textContent = `${service.name} : ${label} en cours...`;
+    try {
+        await Hyperflo.apiJson(url, { method: "POST", headers: { "X-Hyperflo-Action": "1" } });
+        checked.textContent = `✓ ${service.name} : ${label} effectué`;
+    } catch (error) {
+        checked.textContent = SELF_RESTARTS.has(service.id)
+            ? `${service.name} redémarre, la page se reconnectera...`
+            : `✗ ${service.name} : ${error.message}`;
+    } finally {
+        serviceActionPending = false;
+        setTimeout(loadServices, SELF_RESTARTS.has(service.id) ? 5000 : 500);
     }
 }
 
@@ -74,6 +132,10 @@ const EVENT_LABELS = {
     terminal_close: "Terminal fermé",
     terminal_login_failure: "Échec de connexion SSH (terminal)",
     websocket_origin_rejected: "WebSocket d'une autre origine refusé",
+    service_action: "Action sur un service",
+    service_logs: "Lecture de logs",
+    power: "Alimentation du serveur",
+    power_denied: "Alimentation refusée",
 };
 
 const ALERT_EVENTS = new Set([
@@ -83,6 +145,8 @@ const ALERT_EVENTS = new Set([
     "cross_site_blocked",
     "terminal_login_failure",
     "websocket_origin_rejected",
+    "power",
+    "power_denied",
 ]);
 
 
@@ -249,3 +313,107 @@ document.getElementById("refreshEventsButton").addEventListener("click", loadSec
 
 loadSessions();
 loadSecurity();
+
+
+
+/* =========================================================
+   Logs
+========================================================= */
+
+async function loadLogs() {
+    const source = document.getElementById("logSource").value;
+    const lines = document.getElementById("logLines").value;
+    const output = document.getElementById("serviceLogs");
+    output.textContent = "Chargement...";
+
+    let url;
+    if (source.startsWith("container:")) {
+        const name = source.slice("container:".length);
+        url = `/api/docker/${encodeURIComponent(name)}/logs?lines=${lines}`;
+    } else if (source === "hyperflo-audit") {
+        url = `/api/admin/logs?source=hyperflo&lines=1000&audit_only=true`;
+    } else {
+        url = `/api/admin/logs?source=${encodeURIComponent(source)}&lines=${lines}`;
+    }
+
+    try {
+        const data = await Hyperflo.apiJson(url);
+        output.textContent = data.logs || "Aucun log.";
+        output.scrollTop = output.scrollHeight;
+    } catch (error) {
+        output.textContent = "Erreur : " + error.message;
+    }
+}
+
+document.getElementById("loadLogsButton").addEventListener("click", loadLogs);
+
+
+/* =========================================================
+   Alimentation (nom du serveur + code TOTP)
+========================================================= */
+
+const POWER_QUESTIONS = {
+    reboot: "Redémarrer le serveur ?",
+    poweroff: "Éteindre le serveur ? Il faudra le rallumer physiquement.",
+};
+
+let powerAction = null;
+
+const powerForm = document.getElementById("powerForm");
+const powerMessage = document.getElementById("powerMessage");
+
+function openPowerForm(action) {
+    powerAction = action;
+    document.getElementById("powerQuestion").textContent = POWER_QUESTIONS[action];
+    document.getElementById("powerHostname").textContent = serverHostname || "?";
+    document.getElementById("powerConfirm").value = "";
+    document.getElementById("powerTotp").value = "";
+    powerMessage.textContent = "";
+    powerForm.classList.remove("hidden");
+    document.getElementById("powerConfirm").focus();
+}
+
+function closePowerForm() {
+    powerAction = null;
+    powerForm.classList.add("hidden");
+}
+
+for (const button of document.querySelectorAll("[data-power]")) {
+    button.addEventListener("click", () => openPowerForm(button.dataset.power));
+}
+
+document.getElementById("powerCancel").addEventListener("click", closePowerForm);
+
+powerForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!powerAction) {
+        return;
+    }
+
+    const totpInput = document.getElementById("powerTotp");
+    const submit = document.getElementById("powerSubmit");
+    submit.disabled = true;
+    powerMessage.textContent = "Arrêt propre de Minecraft puis "
+        + (powerAction === "reboot" ? "redémarrage" : "extinction") + "...";
+
+    try {
+        await Hyperflo.apiJson("/api/admin/power", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Hyperflo-Action": "1" },
+            body: JSON.stringify({
+                action: powerAction,
+                confirm: document.getElementById("powerConfirm").value,
+                totp: totpInput.value.replace(/\D/g, ""),
+            }),
+        });
+        powerMessage.textContent = powerAction === "reboot"
+            ? "✓ Redémarrage lancé. Le dashboard reviendra dans une à deux minutes."
+            : "✓ Extinction lancée.";
+        closePowerForm();
+    } catch (error) {
+        powerMessage.textContent = "✗ " + error.message;
+        totpInput.value = "";
+    } finally {
+        submit.disabled = false;
+    }
+});

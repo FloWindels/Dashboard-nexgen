@@ -60,6 +60,13 @@ Tout est fait sur le serveur, sans service externe.
   Si l'Origin est refusee derriere Cloudflare, voir l'evenement
   websocket_origin_rejected et definir HYPERFLO_ALLOWED_ORIGINS.
 
+- Administration: actions limitees par hyperflo-service-action (Playit
+  start/stop/restart, Cloudflared et Hyperflo restart seulement; pas SSH ni
+  Docker), logs journald d'une liste fermee de services via
+  hyperflo-service-logs (le compte hyperflo n'est pas dans systemd-journal),
+  redemarrage/extinction via hyperflo-power apres le nom du serveur et un
+  code TOTP; Minecraft est arrete proprement avant.
+
 Pourquoi pas fail2ban: tout le trafic arrive de cloudflared (127.0.0.1), un
 bannissement au niveau du pare-feu ne viserait pas l'attaquant. La limitation
 est donc faite dans l'application.

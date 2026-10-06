@@ -178,6 +178,22 @@ def _consume_totp(counter: int) -> bool:
         return True
 
 
+def verify_step_up_totp(request: Request, code: str) -> bool:
+    """Code TOTP redemande pour une action critique (ex.: eteindre le serveur).
+
+    Meme protection que le login: un code ne sert qu'une fois et les echecs
+    comptent dans la limite par IP.
+    """
+    ip = get_client_ip(request)
+    if login_guard.blocked(ip):
+        return False
+    counter = _match_totp(code.replace(" ", "").strip())
+    if counter is None or not _consume_totp(counter):
+        login_guard.failure(ip)
+        return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Cookies
 # ---------------------------------------------------------------------------

@@ -42,6 +42,18 @@ esac
 
 FAKE_LOGGER = "#!/bin/sh\nexit 0\n"
 
+FAKE_JOURNALCTL = """#!/bin/sh
+echo "journalctl $*" >> "$STATE/calls"
+echo "ligne de log"
+"""
+
+# Faux script Minecraft (appele par hyperflo-power).
+FAKE_MINECRAFT_ACTION = """#!/bin/sh
+echo "minecraft-action $*" >> "$STATE/calls"
+[ -f "$STATE/fail_minecraft" ] && { echo "erreur minecraft" >&2; exit 1; }
+rm -f "$STATE/running"
+"""
+
 
 class HelperSandbox:
     def __init__(self, script_name):
@@ -51,15 +63,19 @@ class HelperSandbox:
         self.state.mkdir()
         (self.state / "calls").touch()
 
-        fakes = {"docker": FAKE_DOCKER, "systemctl": FAKE_SYSTEMCTL, "logger": FAKE_LOGGER}
-        for name, content in fakes.items():
-            path = self.dir / name
+        fakes = {
+            "/usr/bin/docker": FAKE_DOCKER,
+            "/usr/bin/systemctl": FAKE_SYSTEMCTL,
+            "/usr/bin/logger": FAKE_LOGGER,
+            "/usr/bin/journalctl": FAKE_JOURNALCTL,
+            "/usr/local/sbin/hyperflo-minecraft-action": FAKE_MINECRAFT_ACTION,
+        }
+        code = (SBIN / script_name).read_text()
+        for real_path, content in fakes.items():
+            path = self.dir / Path(real_path).name
             path.write_text(content)
             path.chmod(0o755)
-
-        code = (SBIN / script_name).read_text()
-        for name in fakes:
-            code = code.replace(f"/usr/bin/{name}", str(self.dir / name))
+            code = code.replace(real_path, str(path))
         self.script = self.dir / script_name
         self.script.write_text(code)
 
@@ -164,6 +180,107 @@ class DockerActionHelperTests(unittest.TestCase):
             self.assertEqual(actions, [])
         finally:
             box.close()
+
+
+class ServiceActionHelperTests(unittest.TestCase):
+    def setUp(self):
+        self.box = HelperSandbox("hyperflo-service-action")
+
+    def tearDown(self):
+        self.box.close()
+
+    def test_allowed_actions(self):
+        cases = {
+            ("start", "playit"): "systemctl start playit.service",
+            ("stop", "playit"): "systemctl stop playit.service",
+            ("restart", "playit"): "systemctl restart playit.service",
+            # Coupent le dashboard: lances sans attendre.
+            ("restart", "cloudflared"): "systemctl --no-block restart cloudflared.service",
+            ("restart", "hyperflo"): "systemctl --no-block restart hyperflo-control.service",
+        }
+        for args, expected in cases.items():
+            with self.subTest(args=args):
+                (self.box.state / "calls").write_text("")
+                result, actions = self.box.run(*args)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(actions, [expected])
+
+    def test_refused_actions(self):
+        for args in (
+            ["stop", "cloudflared"],
+            ["stop", "hyperflo"],
+            ["restart", "ssh"],
+            ["restart", "docker"],
+            ["restart", "playit.service"],
+            ["kill", "playit"],
+            ["restart"],
+            ["restart", "playit", "extra"],
+        ):
+            with self.subTest(args=args):
+                result, actions = self.box.run(*args)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(actions, [])
+
+
+class ServiceLogsHelperTests(unittest.TestCase):
+    def setUp(self):
+        self.box = HelperSandbox("hyperflo-service-logs")
+
+    def tearDown(self):
+        self.box.close()
+
+    def test_reads_allowed_unit(self):
+        result, actions = self.box.run("hyperflo", "50")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            actions,
+            ["journalctl --unit hyperflo-control.service --lines 50 --no-pager --output short-iso"],
+        )
+        self.assertIn("ligne de log", result.stdout)
+
+    def test_lines_are_capped(self):
+        _, actions = self.box.run("ssh", "999999")
+        self.assertIn("--lines 1000", actions[0])
+
+    def test_refused_sources(self):
+        for args in (["sudo", "10"], ["../etc", "10"], ["hyperflo", "abc"], ["hyperflo"]):
+            with self.subTest(args=args):
+                result, actions = self.box.run(*args)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(actions, [])
+
+
+class PowerHelperTests(unittest.TestCase):
+    def setUp(self):
+        self.box = HelperSandbox("hyperflo-power")
+
+    def tearDown(self):
+        self.box.close()
+
+    def test_stops_minecraft_cleanly_before_reboot(self):
+        self.box.set("running")
+        result, actions = self.box.run("reboot")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(actions, ["minecraft-action stop", "systemctl reboot"])
+
+    def test_poweroff_without_minecraft_running(self):
+        result, actions = self.box.run("poweroff")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(actions, ["systemctl poweroff"])
+
+    def test_aborts_if_minecraft_cannot_stop(self):
+        self.box.set("running")
+        self.box.set("fail_minecraft")
+        result, actions = self.box.run("reboot")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(actions, ["minecraft-action stop"])
+
+    def test_refused_arguments(self):
+        for args in ([], ["halt"], ["reboot", "now"]):
+            with self.subTest(args=args):
+                result, actions = self.box.run(*args)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(actions, [])
 
 
 if __name__ == "__main__":
