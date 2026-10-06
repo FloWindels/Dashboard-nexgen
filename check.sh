@@ -13,13 +13,21 @@ cd "$(dirname "$0")"
 PY="$PWD/venv/bin/python"
 export PYTHONDONTWRITEBYTECODE=1
 
+# Python isole (-I) par defaut. HYPERFLO_CHECK_PYTHONPATH permet de tester
+# avec des paquets hors du venv (ex.: avant de les installer dans le venv).
+PYFLAGS=(-I)
+if [ -n "${HYPERFLO_CHECK_PYTHONPATH:-}" ]; then
+    export PYTHONPATH="$HYPERFLO_CHECK_PYTHONPATH"
+    PYFLAGS=(-s -P)
+fi
+
 step() {
     echo
     echo "== $*"
 }
 
-step "1/6 Syntaxe Python"
-"$PY" -I - *.py tests/*.py deploy/sbin/hyperflo-docker-action deploy/sbin/hyperflo-docker-info deploy/sbin/hyperflo-minecraft-action <<'EOF'
+step "1/7 Syntaxe Python"
+"$PY" "${PYFLAGS[@]}" - *.py tests/*.py deploy/sbin/hyperflo-docker-action deploy/sbin/hyperflo-docker-info deploy/sbin/hyperflo-minecraft-action <<'EOF'
 import ast
 import sys
 
@@ -29,13 +37,13 @@ for path in sys.argv[1:]:
 print(f"{len(sys.argv) - 1} fichiers OK")
 EOF
 
-step "2/6 Syntaxe shell"
+step "2/7 Syntaxe shell"
 bash -n check.sh deploy/install.sh
 sh -n deploy/sbin/hyperflo-docker-list
 sh -n deploy/sbin/hyperflo-docker-stats
 echo "OK"
 
-step "3/6 Droits de lecture pour le service (utilisateur hyperflo)"
+step "3/7 Droits de lecture pour le service (utilisateur hyperflo)"
 # Un fichier cree ou remplace par florent appartient a florent:florent et
 # n'est pas lisible par le service (erreur 500 en production).
 unreadable=()
@@ -53,7 +61,16 @@ if [ "${#unreadable[@]}" -ne 0 ]; then
 fi
 echo "OK"
 
-step "4/6 Identifiants de test"
+step "4/7 Dependances Python"
+if ! "$PY" "${PYFLAGS[@]}" -c "import asyncssh, websockets" 2>/dev/null; then
+    echo "ECHEC: asyncssh ou websockets absent du venv (terminal Web)." >&2
+    echo "  sudo venv/bin/pip install --only-binary :all: -r requirements.txt" >&2
+    echo "  sudo chgrp -R hyperflo venv" >&2
+    exit 1
+fi
+echo "OK"
+
+step "5/7 Identifiants de test"
 WORKDIR="$(mktemp -d)"
 PIDS=()
 cleanup() {
@@ -64,7 +81,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"$PY" -I > "$WORKDIR/env" <<'EOF'
+"$PY" "${PYFLAGS[@]}" > "$WORKDIR/env" <<'EOF'
 import secrets
 import shlex
 import socket
@@ -88,6 +105,7 @@ values = {
     "HYPERFLO_SESSION_SECRET": secrets.token_urlsafe(48),
     "HYPERFLO_TEST_PORT": str(free_port()),
     "HYPERFLO_FAKE_OLLAMA_PORT": str(free_port()),
+    "HYPERFLO_TERMINAL_SSH_PORT": str(free_port()),
     "OLLAMA_API_KEY": "",
 }
 for key, value in values.items():
@@ -96,11 +114,21 @@ EOF
 # shellcheck disable=SC1091
 . "$WORKDIR/env"
 export OLLAMA_URL="http://127.0.0.1:$HYPERFLO_FAKE_OLLAMA_PORT"
+# Faux sshd: cle d'hote generee pour cette verification uniquement.
+"$PY" "${PYFLAGS[@]}" -c "
+import asyncssh, sys
+key = asyncssh.generate_private_key('ssh-ed25519')
+key.write_private_key(sys.argv[1])
+key.write_public_key(sys.argv[1] + '.pub')
+" "$WORKDIR/ssh_host_key"
+export HYPERFLO_TERMINAL_HOST_KEYS="$WORKDIR/ssh_host_key.pub"
 export HYPERFLO_TEST_URL="http://127.0.0.1:$HYPERFLO_TEST_PORT"
 echo "OK (port $HYPERFLO_TEST_PORT)"
 
-step "5/6 Demarrage de l'application de test"
-"$PY" -I tests/fake_ollama.py "$HYPERFLO_FAKE_OLLAMA_PORT" &
+step "6/7 Demarrage de l'application de test"
+"$PY" "${PYFLAGS[@]}" tests/fake_ollama.py "$HYPERFLO_FAKE_OLLAMA_PORT" &
+PIDS+=($!)
+"$PY" "${PYFLAGS[@]}" tests/fake_sshd.py "$HYPERFLO_TERMINAL_SSH_PORT" "$WORKDIR/ssh_host_key" &
 PIDS+=($!)
 "$PWD/venv/bin/uvicorn" app:app \
     --host 127.0.0.1 --port "$HYPERFLO_TEST_PORT" \
@@ -123,8 +151,8 @@ if [ "$started" -ne 1 ]; then
 fi
 echo "OK (imports et chargement de FastAPI)"
 
-step "6/6 Tests"
-if ! "$PY" -I -m unittest discover -s tests -t . "$@"; then
+step "7/7 Tests"
+if ! "$PY" "${PYFLAGS[@]}" -m unittest discover -s tests -t . "$@"; then
     echo
     echo "Journal de l'instance de test:" >&2
     tail -n 30 "$WORKDIR/uvicorn.log" >&2

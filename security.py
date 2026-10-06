@@ -2,13 +2,14 @@ import ipaddress
 import logging
 import sys
 import time
+import urllib.parse
 from collections import deque
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from config import MAX_BODY_BYTES, MAX_CHAT_BODY_BYTES, TRUST_CF_CONNECTING_IP
+from config import ALLOWED_ORIGINS, MAX_BODY_BYTES, MAX_CHAT_BODY_BYTES, TRUST_CF_CONNECTING_IP
 
 # ---------------------------------------------------------------------------
 # Journal d'audit
@@ -69,6 +70,28 @@ def get_client_ip(request: Request) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Origine des WebSockets
+# ---------------------------------------------------------------------------
+
+def origin_allowed(origin: str | None, host: str | None) -> bool:
+    """Un WebSocket doit venir d'une page de Hyperflo lui-meme.
+
+    Les navigateurs envoient toujours l'en-tete Origin pour un WebSocket;
+    sans ce controle, n'importe quel site pourrait ouvrir le terminal avec le
+    cookie de l'utilisateur (Cross-Site WebSocket Hijacking).
+    """
+    if not origin or origin == "null":
+        return False
+
+    origin = origin.rstrip("/")
+    if origin in ALLOWED_ORIGINS:
+        return True
+
+    parsed = urllib.parse.urlsplit(origin)
+    return parsed.scheme in {"https", "http"} and bool(host) and parsed.netloc == host
+
+
+# ---------------------------------------------------------------------------
 # En-tetes de securite
 # ---------------------------------------------------------------------------
 
@@ -87,8 +110,15 @@ CONTENT_SECURITY_POLICY = "; ".join(
     ]
 )
 
+# xterm.js genere ses couleurs et dimensions dans des balises <style>: la
+# page du terminal (et elle seule) autorise les styles en ligne. Les scripts
+# restent limites aux fichiers du serveur.
+TERMINAL_CONTENT_SECURITY_POLICY = CONTENT_SECURITY_POLICY.replace(
+    "style-src 'self'", "style-src 'self' 'unsafe-inline'"
+)
+INLINE_STYLE_PATHS = {"/terminal"}
+
 SECURITY_HEADERS = [
-    (b"content-security-policy", CONTENT_SECURITY_POLICY.encode()),
     (b"x-content-type-options", b"nosniff"),
     (b"x-frame-options", b"DENY"),
     (b"referrer-policy", b"no-referrer"),
@@ -112,6 +142,11 @@ class SecurityHeadersMiddleware:
             return
 
         is_static = scope["path"].startswith("/static/")
+        csp = (
+            TERMINAL_CONTENT_SECURITY_POLICY
+            if scope["path"] in INLINE_STYLE_PATHS
+            else CONTENT_SECURITY_POLICY
+        )
 
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
@@ -120,6 +155,7 @@ class SecurityHeadersMiddleware:
                     for name, value in message.get("headers", [])
                     if name.lower() != b"cache-control" or is_static
                 ]
+                headers.append((b"content-security-policy", csp.encode()))
                 headers.extend(SECURITY_HEADERS)
                 if is_static:
                     headers.append((b"cache-control", b"no-cache"))

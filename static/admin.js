@@ -70,6 +70,10 @@ const EVENT_LABELS = {
     cross_site_blocked: "Requête inter-site refusée",
     docker_action: "Action Docker",
     docker_logs: "Lecture de logs Docker",
+    terminal_open: "Terminal ouvert",
+    terminal_close: "Terminal fermé",
+    terminal_login_failure: "Échec de connexion SSH (terminal)",
+    websocket_origin_rejected: "WebSocket d'une autre origine refusé",
 };
 
 const ALERT_EVENTS = new Set([
@@ -77,6 +81,8 @@ const ALERT_EVENTS = new Set([
     "login_blocked",
     "csrf_rejected",
     "cross_site_blocked",
+    "terminal_login_failure",
+    "websocket_origin_rejected",
 ]);
 
 

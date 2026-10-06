@@ -9,6 +9,7 @@ from docker_api import router as docker_router
 from ollama_api import router as ollama_router
 from pages import router as pages_router
 from system_monitor import router as system_router
+from terminal_api import router as terminal_router
 
 validate_auth_config()
 
@@ -36,3 +37,4 @@ app.include_router(system_router)
 app.include_router(docker_router)
 app.include_router(ollama_router)
 app.include_router(admin_router)
+app.include_router(terminal_router)

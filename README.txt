@@ -11,6 +11,8 @@ Fichiers
 - system_monitor.py  : CPU, RAM, GPU, disques, reseau et liste Docker
 - docker_api.py      : start/stop/restart/details/logs Docker
 - ollama_api.py      : Ollama, streaming, thinking et recherche Web
+- terminal_api.py    : terminal Web (WebSocket <-> SSH vers 127.0.0.1)
+- admin_api.py       : etat des services (page Administration)
 - pages.py           : routes HTML + menu commun (insere a la place de <!-- hyperflo:nav -->)
 - static/common.css  : theme, menu et composants partages
 - static/common.js   : fonctions partagees (Hyperflo.formatBytes, apiJson...)
@@ -47,6 +49,16 @@ Tout est fait sur le serveur, sans service externe.
     journalctl -u hyperflo-control | grep hyperflo-audit
   Un echec avec password_ok="True" et totp_ok="False" signifie que le mot de
   passe est probablement connu d'un tiers: le changer.
+
+- Terminal Web (/terminal): seconde authentification avec un compte Linux,
+  vraie session SSH vers 127.0.0.1 (cle d'hote de sshd verifiee). Le mot de
+  passe Linux n'est ni stocke ni journalise. root refuse (utiliser sudo).
+  WebSocket: session Hyperflo + Origin + jeton CSRF. 3 terminaux par
+  session, 6 au total, fermeture apres 30 min sans frappe, au logout, a la
+  revocation de la session et a la fermeture de l'onglet. Seule cette page
+  autorise les styles en ligne (xterm.js); les scripts restent stricts.
+  Si l'Origin est refusee derriere Cloudflare, voir l'evenement
+  websocket_origin_rejected et definir HYPERFLO_ALLOWED_ORIGINS.
 
 Pourquoi pas fail2ban: tout le trafic arrive de cloudflared (127.0.0.1), un
 bannissement au niveau du pare-feu ne viserait pas l'attaquant. La limitation

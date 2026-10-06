@@ -9,6 +9,7 @@ PAGES = {
     "/": "dashboard",
     "/docker": "docker",
     "/ollama": "ollama",
+    "/terminal": "terminal",
     "/admin": "admin",
 }
 
@@ -55,6 +56,19 @@ class PageTests(unittest.TestCase):
         self.assertEqual(response.headers.get("x-frame-options"), "DENY")
         self.assertEqual(response.headers.get("cache-control"), "no-store")
         self.assertNotIn("server", response.headers)
+
+    def test_inline_styles_only_on_terminal_page(self):
+        # xterm.js a besoin de styles en ligne; les scripts restent stricts.
+        session = shared_session()
+        for path in PAGES:
+            csp = session.get(path).headers.get("content-security-policy", "")
+            with self.subTest(page=path):
+                self.assertIn("script-src 'self';", csp)
+                self.assertNotIn("unsafe-eval", csp)
+                if path == "/terminal":
+                    self.assertIn("style-src 'self' 'unsafe-inline'", csp)
+                else:
+                    self.assertNotIn("unsafe-inline", csp)
 
     def test_login_page_redirects_when_authenticated(self):
         response = shared_session().get("/login")

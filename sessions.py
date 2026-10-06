@@ -53,6 +53,16 @@ class SessionStore:
     def __init__(self) -> None:
         self._sessions: dict[str, Session] = {}
         self._lock = threading.Lock()
+        # Appeles avec chaque session revoquee (ex.: fermer ses terminaux).
+        self._revoke_listeners: list = []
+
+    def on_revoke(self, listener) -> None:
+        self._revoke_listeners.append(listener)
+
+    def _notify(self, revoked: list[Session]) -> None:
+        for session in revoked:
+            for listener in self._revoke_listeners:
+                listener(session)
 
     @staticmethod
     def _key(token: str) -> str:
@@ -112,14 +122,21 @@ class SessionStore:
         if not token:
             return None
         with self._lock:
-            return self._sessions.pop(self._key(token), None)
+            session = self._sessions.pop(self._key(token), None)
+        if session:
+            self._notify([session])
+        return session
 
     def revoke_public_id(self, public_id: str) -> Session | None:
+        revoked = None
         with self._lock:
             for key, session in list(self._sessions.items()):
                 if hmac.compare_digest(session.public_id, public_id):
-                    return self._sessions.pop(key)
-        return None
+                    revoked = self._sessions.pop(key)
+                    break
+        if revoked:
+            self._notify([revoked])
+        return revoked
 
     def revoke_all_except(self, keep: Session | None) -> int:
         with self._lock:
@@ -127,9 +144,19 @@ class SessionStore:
                 key for key, session in self._sessions.items()
                 if session is not keep
             ]
-            for key in keys:
-                del self._sessions[key]
-            return len(keys)
+            revoked = [self._sessions.pop(key) for key in keys]
+        self._notify(revoked)
+        return len(revoked)
+
+    def is_active(self, session: Session, touch: bool = False) -> bool:
+        """Session toujours enregistree et non expiree (pour les connexions longues)."""
+        now = time.time()
+        with self._lock:
+            if session not in self._sessions.values() or session.expires_at() <= now:
+                return False
+            if touch:
+                session.last_seen = now
+            return True
 
     def list(self) -> list[Session]:
         with self._lock:

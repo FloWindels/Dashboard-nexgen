@@ -50,6 +50,7 @@ NAV_ITEMS = [
     ("dashboard", "/", "🏠 Dashboard"),
     ("docker", "/docker", "🐳 Docker"),
     ("ollama", "/ollama", "🤖 Ollama"),
+    ("terminal", "/terminal", "💻 Terminal"),
     ("admin", "/admin", "⚙️ Administration"),
 ]
 
@@ -98,6 +99,11 @@ def docker_page():
 @router.get("/ollama")
 def ollama_page():
     return render_page("ollama")
+
+
+@router.get("/terminal")
+def terminal_page():
+    return render_page("terminal")
 
 
 @router.get("/admin")

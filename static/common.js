@@ -67,7 +67,20 @@ const Hyperflo = (() => {
         return node;
     }
 
+    // Jeton CSRF de la session (cookie lisible par le JS, voir auth.py).
+    function csrfToken() {
+        const prefix = "__Host-hyperflo_csrf=";
+        for (const part of document.cookie.split(";")) {
+            const cookie = part.trim();
+            if (cookie.startsWith(prefix)) {
+                return decodeURIComponent(cookie.slice(prefix.length));
+            }
+        }
+        return "";
+    }
+
     return {
+        csrfToken,
         formatBytes,
         formatDuration,
         formatDate,

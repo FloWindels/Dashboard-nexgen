@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal - Hyperflo Control</title>
+    <link rel="stylesheet" href="/static/common.css">
+    <link rel="stylesheet" href="/static/vendor/xterm/xterm.css">
+    <link rel="stylesheet" href="/static/terminal.css">
+</head>
+
+<body>
+    <!-- hyperflo:nav -->
+
+    <main class="page terminal-page">
+        <div class="terminal-header">
+            <div>
+                <h1>💻 Terminal</h1>
+                <p class="small" id="terminalStatus">Non connecté</p>
+            </div>
+            <div class="terminal-tools">
+                <button class="btn danger hidden" id="disconnectButton" type="button">Déconnecter</button>
+            </div>
+        </div>
+
+        <!-- Seconde authentification: compte Linux du serveur (SSH vers 127.0.0.1). -->
+        <section class="card login-card" id="loginCard">
+            <h2>Connexion SSH au serveur</h2>
+            <p class="small">
+                Utilise un compte Linux existant. Le mot de passe sert uniquement à ouvrir
+                la session SSH : il n'est ni enregistré ni conservé.
+                La connexion <code>root</code> est refusée ; utilise <code>sudo</code>.
+            </p>
+
+            <form id="loginForm" autocomplete="off">
+                <label for="linuxUser">Utilisateur Linux</label>
+                <input id="linuxUser" name="linux-user" type="text" required
+                    maxlength="32" autocapitalize="off" spellcheck="false" autocomplete="off">
+
+                <label for="linuxPassword">Mot de passe Linux</label>
+                <input id="linuxPassword" name="linux-password" type="password" required
+                    maxlength="1024" autocomplete="off">
+
+                <button class="btn" id="connectButton" type="submit">Se connecter</button>
+                <div class="login-error hidden" id="loginError" role="alert"></div>
+            </form>
+        </section>
+
+        <section class="terminal-wrap hidden" id="terminalWrap">
+            <div id="terminal"></div>
+        </section>
+    </main>
+
+    <script src="/static/security.js"></script>
+    <script src="/static/common.js"></script>
+    <script src="/static/vendor/xterm/xterm.js"></script>
+    <script src="/static/vendor/xterm/addon-fit.js"></script>
+    <script src="/static/terminal.js"></script>
+</body>
+
+</html>

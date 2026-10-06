@@ -47,6 +47,25 @@ LOGIN_MAX_FAILURES_GLOBAL = _env_int("HYPERFLO_LOGIN_MAX_FAILURES_GLOBAL", 30)
 # Cloudflare Tunnel (cloudflared local) fournit l'IP reelle du client.
 TRUST_CF_CONNECTING_IP = _env_bool("HYPERFLO_TRUST_CF_CONNECTING_IP", True)
 
+# Origines autorisees pour les WebSockets, en plus de celle du Host de la
+# requete (ex.: "https://admin.example.com"), separees par des virgules.
+ALLOWED_ORIGINS = {
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("HYPERFLO_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+}
+
+# Terminal Web: SSH vers la machine elle-meme.
+TERMINAL_SSH_HOST = os.environ.get("HYPERFLO_TERMINAL_SSH_HOST", "127.0.0.1")
+TERMINAL_SSH_PORT = _env_int("HYPERFLO_TERMINAL_SSH_PORT", 22)
+# Cles publiques d'hote de sshd (verification de l'identite du serveur).
+TERMINAL_HOST_KEYS = os.environ.get("HYPERFLO_TERMINAL_HOST_KEYS", "/etc/ssh/ssh_host_*_key.pub")
+TERMINAL_IDLE_TIMEOUT = _env_int("HYPERFLO_TERMINAL_IDLE_TIMEOUT", 30 * 60)
+TERMINAL_MAX_PER_SESSION = _env_int("HYPERFLO_TERMINAL_MAX_PER_SESSION", 3)
+TERMINAL_MAX_TOTAL = _env_int("HYPERFLO_TERMINAL_MAX_TOTAL", 6)
+# Echecs de connexion SSH tolerees par session Hyperflo sur LOGIN_WINDOW.
+TERMINAL_MAX_LOGIN_FAILURES = _env_int("HYPERFLO_TERMINAL_MAX_LOGIN_FAILURES", 5)
+
 # Taille maximale des corps de requete.
 MAX_BODY_BYTES = _env_int("HYPERFLO_MAX_BODY_BYTES", 64 * 1024)
 MAX_CHAT_BODY_BYTES = _env_int("HYPERFLO_MAX_CHAT_BODY_BYTES", 16 * 1024 * 1024)

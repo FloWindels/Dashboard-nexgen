@@ -11,7 +11,9 @@ from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
+from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.websockets import WebSocketClose
 
 from config import (
     HYPERFLO_PASSWORD_HASH,
@@ -29,6 +31,7 @@ from security import (
     SecurityHeadersMiddleware,
     audit,
     get_client_ip,
+    origin_allowed,
 )
 from sessions import CSRF_COOKIE, SESSION_COOKIE, Session, sessions
 
@@ -220,6 +223,10 @@ class HyperfloAuthMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "websocket":
+            await self._websocket(scope, receive, send)
+            return
+
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
@@ -268,6 +275,31 @@ class HyperfloAuthMiddleware:
                 response = JSONResponse({"detail": "Jeton CSRF invalide"}, status_code=403)
                 await response(scope, receive, send)
                 return
+
+        scope.setdefault("state", {})["session"] = session
+        await self.app(scope, receive, send)
+
+
+    async def _websocket(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """WebSocket: session valide et Origin de Hyperflo obligatoires.
+
+        Le jeton CSRF est verifie ensuite par la route (premier message), pour
+        ne jamais apparaitre dans une URL ni dans les journaux.
+        """
+        # HTTPConnection: Request(scope) n'accepte que le type "http".
+        request = HTTPConnection(scope)
+        origin = request.headers.get("Origin")
+        host = request.headers.get("Host")
+
+        if not origin_allowed(origin, host):
+            audit("websocket_origin_rejected", request, path=scope["path"], origin=origin or "", host=host or "")
+            await WebSocketClose(code=1008)(scope, receive, send)
+            return
+
+        session = sessions.get(request.cookies.get(SESSION_COOKIE), touch=False)
+        if session is None:
+            await WebSocketClose(code=1008)(scope, receive, send)
+            return
 
         scope.setdefault("state", {})["session"] = session
         await self.app(scope, receive, send)
