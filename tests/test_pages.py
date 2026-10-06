@@ -34,6 +34,19 @@ class PageTests(unittest.TestCase):
                 with self.subTest(page=path, asset=asset):
                     self.assertEqual(session.get(asset).status, 200)
 
+    def test_assets_are_versioned(self):
+        # Cloudflare garde /static 4 h en cache navigateur: chaque reference
+        # doit porter l'empreinte du fichier.
+        session = shared_session()
+        for path in list(PAGES) + ["/login"]:
+            client = request if path == "/login" else session.get
+            html = client(path).body.decode()
+            references = re.findall(r'(?:src|href)="(/static/[^"]+)"', html)
+            with self.subTest(page=path):
+                self.assertTrue(references)
+                for reference in references:
+                    self.assertRegex(reference, r"\?v=[0-9a-f]{12}$")
+
     def test_security_headers(self):
         response = shared_session().get("/")
         csp = response.headers.get("content-security-policy", "")

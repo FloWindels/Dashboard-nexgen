@@ -8,13 +8,12 @@ import pyotp
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from fastapi import APIRouter, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from config import (
-    BASE_DIR,
     HYPERFLO_PASSWORD_HASH,
     HYPERFLO_TOTP_SECRET,
     HYPERFLO_USER,
@@ -23,6 +22,7 @@ from config import (
     LOGIN_WINDOW,
     SESSION_MAX_AGE,
 )
+from pages import render_page
 from security import (
     AUDIT_EVENTS,
     BodySizeLimitMiddleware,
@@ -295,7 +295,7 @@ class LoginBody(BaseModel):
 def login_page(request: Request):
     if sessions.get(request.cookies.get(SESSION_COOKIE), touch=False):
         return RedirectResponse(url="/", status_code=303)
-    return FileResponse(BASE_DIR / "pages" / "login.html")
+    return render_page("login")
 
 
 @router.post("/api/auth/login")
